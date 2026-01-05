@@ -74,9 +74,9 @@ This tool is designed as an **observational aid** for coaches, physiotherapists,
 
 ---
 
-## IMU Data Format
+## IMU Data Formatting
 
-Your CSV file must follow this structure:
+The CSV file must match this structure:
 
 ### Required Headers
 ```csv
@@ -96,14 +96,14 @@ ax,ay,az,gx,gy,gz,mx,my,mz
 ```
 
 ### Important Notes:
-- **No timestamp column needed**: The app generates timestamps automatically based on sample rate
+- **No timestamp column is needed**: The app generates timestamps automatically based on the sample rate
 - **Default sample rate**: 104 Hz (configurable in `config.js` via `SAMPLE_RATE_HZ`)
 - **Data order**: Each row represents one sample; samples must be in chronological order
 - **Missing values**: Use `0` for any missing sensor values
 
 ### Exporting from Common IMU Devices:
-- **Movesense**: Export as CSV, ensure headers match the required format
-- **Arduino/Custom sensors**: Format your output to match the header structure above
+- **Movesense Mobile App**: Export as CSV, ensure headers match the required format, this may require manual restructuring
+- **Arduino/Custom Sensors**: Format your output to match the header structure above
 - **Mobile apps**: Many IMU recording apps allow CSV export—verify the header names
 
 ---
