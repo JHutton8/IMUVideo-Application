@@ -1,0 +1,177 @@
+<div class="upload-wizard" id="uploadWizard">
+  <!-- Header -->
+  <header class="uw-header">
+    <div class="uw-header-left">
+      <h2 class="uw-title">Upload</h2>
+      <p class="uw-subtitle">
+        Upload video and/or IMU CSV data, add session details, then save.
+      </p>
+    </div>
+  </header>
+
+  <!-- NEW: Two-column layout (main + sticky session card) -->
+  <div class="uw-layout uw-layout-single">
+    <!-- Main content -->
+    <main class="uw-stage" aria-live="polite">
+      <section class="uw-panel uw-panel-always" id="panelUploadSingle" data-active="true" aria-hidden="false">
+        <div class="uw-panel-head">
+          <div>
+            <div class="uw-kicker">Upload</div>
+            <h3 class="uw-panel-title">Upload your data</h3>
+            <p class="uw-panel-subtitle">
+              Upload a video, IMU CSV sensors, or both — then save the session.
+            </p>
+          </div>
+        </div>
+
+        <div class="uw-upload-grid">
+          <!-- Video block -->
+          <section class="uw-block" id="videoBlock">
+            <div class="uw-block-head">
+              <div class="uw-block-title">
+                <i class="bx bx-video"></i>
+                Video
+              </div>
+              <div class="uw-block-sub">MP4, MOV, WEBM…</div>
+            </div>
+
+            <input id="uploadVideoInput" type="file" accept="video/*" hidden />
+
+            <div class="uw-drop" id="videoDropzone" tabindex="0" role="button" aria-label="Video dropzone">
+              <div class="uw-drop-main">
+                <div class="uw-drop-icon"><i class="bx bx-cloud-upload"></i></div>
+                <div class="uw-drop-text">
+                  <div class="uw-drop-title">Drop video here</div>
+                  <div class="uw-drop-desc">or click to browse</div>
+                </div>
+              </div>
+
+              <div class="uw-drop-side">
+                <button class="btn btn-primary" id="pickVideoBtn" type="button">Choose video</button>
+              </div>
+
+              <div class="uw-fileline" id="pickedVideoName"></div>
+            </div>
+
+            <div class="uw-preview">
+              <div class="uw-preview-head">
+                <div class="uw-preview-title">Preview</div>
+                <button class="uw-link" id="clearVideoBtn" type="button" title="Remove video">Remove</button>
+              </div>
+
+              <div class="uw-preview-body uw-preview-video">
+                <div class="uw-empty" id="videoPreviewEmpty">No video selected.</div>
+                <video id="videoPreview" controls playsinline></video>
+              </div>
+            </div>
+          </section>
+
+          <!-- IMU block -->
+          <section class="uw-block" id="imuBlock">
+            <div class="uw-block-head uw-block-head-row">
+              <div>
+                <div class="uw-block-title">
+                  <i class="bx bx-chip"></i>
+                  IMU sensors
+                </div>
+                <div class="uw-block-sub">Add one or more CSV files. Each sensor can be named and mapped.</div>
+              </div>
+
+              <div class="uw-block-actions">
+                <span class="uw-count" id="imuCount">0 sensors</span>
+                <button class="btn btn-primary" id="addImuBtn" type="button">
+                  <i class="bx bx-plus"></i> Add sensor
+                </button>
+              </div>
+            </div>
+
+            <div class="uw-imu" id="imuSlotsContainer">
+              <div class="uw-imu-empty" id="imuEmptyState">
+                <i class="bx bx-chip"></i>
+                <div>
+                  <div class="uw-imu-empty-title">No sensors yet</div>
+                  <div class="uw-imu-empty-desc">Click “Add sensor” to add an IMU CSV.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Bottom actions -->
+        <div class="uw-footer">
+          <div class="uw-status">
+            <div class="uw-hint" id="hintMain"></div>
+            <div class="uw-msg" id="msgMain"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Sticky session card (replaces left progress rail) -->
+    <aside class="uw-session" aria-label="Session details and summary">
+      <div class="uw-rail-card uw-session-card">
+        <div class="uw-rail-title">Session</div>
+
+        <div class="uw-session-form">
+          <label class="uw-field">
+            <span class="uw-label">Session name</span>
+            <input id="sessionName" class="uw-input" type="text" placeholder="e.g., Gait trial 01" />
+          </label>
+
+          <label class="uw-field">
+            <span class="uw-label">Notes (optional)</span>
+            <textarea id="sessionNotes" class="uw-input uw-textarea" rows="6" placeholder="What should you remember?"></textarea>
+          </label>
+        </div>
+
+        <div class="uw-rail-divider"></div>
+
+        <div class="uw-summary-card uw-summary-card-plain">
+          <div class="uw-summary-title">Summary</div>
+
+          <div class="uw-summary-row">
+            <span>Video</span>
+            <span id="sumVideo">None</span>
+          </div>
+
+          <div class="uw-summary-row">
+            <span>IMU sensors</span>
+            <span id="sumImu">0</span>
+          </div>
+
+          <div class="uw-summary-divider"></div>
+
+          <div class="uw-summary-meta">
+            <div class="uw-summary-meta-title">Ready check</div>
+            <div class="uw-summary-meta-line" id="readyCheckLine">—</div>
+          </div>
+        </div>
+
+        <div class="uw-rail-divider"></div>
+
+        <div class="uw-rail-info">
+          <div class="uw-rail-info-title">Rules</div>
+          <ul class="uw-rail-info-list">
+            <li>You must upload <b>video</b>, <b>IMU</b>, or <b>both</b>.</li>
+            <li>If you add IMU sensors, <b>every sensor must have a CSV</b>.</li>
+            <li>Sessions are stored <b>in memory</b> (lost on refresh).</li>
+          </ul>
+        </div>
+
+        <div class="uw-rail-divider"></div>
+
+        <div class="uw-session-actions">
+          <button class="btn btn-ghost" id="resetBtn" type="button">Reset</button>
+          <button class="btn btn-primary" id="saveSessionBtn" type="button" disabled>
+            Save session
+          </button>
+        </div>
+
+        <div class="uw-session-status">
+          <div class="uw-hint" id="hintSide"></div>
+          <div class="uw-msg" id="msgSide"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

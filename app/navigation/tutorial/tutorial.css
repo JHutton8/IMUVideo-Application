@@ -1,0 +1,357 @@
+:root{
+  /* One place to control the sticky header height offset used by the tutorial page.
+     If your MoveSync header changes height, adjust this number. */
+  --ms-header-h: 96px;
+}
+
+/* ================================
+   Sticky app header (MoveSync)
+   ================================ */
+.home .app-header{
+  position: sticky;
+  top: 0;
+  z-index: 999; /* stay above tutorial nav/cards */
+  background: var(--body-color, #e9edf7);
+  border-bottom: 1px solid rgba(127,127,127,0.18);
+}
+
+/* ========== Tutorial HUB (menu) ========== */
+
+.tuthub{
+  min-height: 100%;
+}
+
+/* Tutorials landing: centered, but can scroll if needed */
+.tuthub-hero{
+  min-height: calc(100vh - var(--ms-header-h)); /* space below sticky header */
+  display: grid;
+  place-items: center;
+  padding: 24px 18px;              /* breathing room */
+  box-sizing: border-box;
+  overflow: visible;               /* allow scroll when content grows */
+}
+
+.tuthub-hero-inner{
+  width: min(980px, 94vw);
+}
+
+.tuthub-title{
+  font-size: 36px;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.tuthub-subtitle{
+  margin: 0 0 22px;
+  opacity: 0.82;
+  text-align: center;
+  color: var(--muted-color, var(--text-color));
+}
+
+.tuthub-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.tuthub-card{
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  border-radius: 16px;
+  padding: 16px 14px;
+  border: 1px solid rgba(127,127,127,0.22);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.tuthub-card:hover{
+  transform: translateY(-1px);
+  border-color: rgba(127,127,127,0.30);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.14);
+}
+
+.tuthub-card:focus-visible{
+  outline: 2px solid rgba(127,127,127,0.45);
+  outline-offset: 3px;
+}
+
+.tuthub-card-title{
+  font-size: 18px;
+  margin: 0;
+}
+
+.tuthub-card-desc{
+  margin: 0;
+  opacity: 0.85;
+  line-height: 1.45;
+  font-size: 13px;
+  color: var(--muted-color, var(--text-color));
+}
+
+.tuthub-card-meta{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  opacity: 0.8;
+  font-size: 12px;
+  color: var(--muted-color, var(--text-color));
+}
+
+.tuthub-backbar{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px 0;
+}
+
+.tuthub-backbtn{
+  border: 1px solid rgba(127,127,127,0.22);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  background: rgba(127,127,127,0.16);
+  color: var(--text-color);
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+
+.tuthub-backbtn:hover{
+  background: rgba(127,127,127,0.22);
+  border-color: rgba(127,127,127,0.30);
+}
+
+.tuthub-backbtn:active{
+  transform: translateY(1px);
+}
+
+.tuthub-backbtn:focus-visible{
+  outline: 2px solid rgba(127,127,127,0.45);
+  outline-offset: 3px;
+}
+
+/* ================================
+   Runner (tutorial flow)
+   ================================ */
+
+/* Runner area should not exceed the viewport below the header */
+.mstut{
+  min-height: calc(100vh - var(--ms-header-h));
+}
+
+/* Hero (startup clean window) */
+.mstut-hero{
+  min-height: calc(100vh - var(--ms-header-h));
+  display: grid;
+  place-items: center;
+  padding: 32px 18px;
+  box-sizing: border-box;
+}
+
+.mstut-hero-inner{
+  width: min(560px, 92vw);
+  text-align: center;
+}
+
+/* IMPORTANT: make hero text follow theme */
+.mstut-title{
+  font-size: 36px;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  color: var(--text-color);
+}
+
+.mstut-subtitle{
+  margin: 0 0 22px;
+  opacity: 0.82;
+  color: var(--muted-color, var(--text-color));
+}
+
+.mstut-hint{
+  margin-top: 16px;
+  opacity: 0.78;
+  font-size: 13px;
+  color: var(--muted-color, var(--text-color));
+}
+
+.mstut-hint kbd{
+  color: var(--text-color);
+  border: 1px solid rgba(127,127,127,0.35);
+  background: rgba(127,127,127,0.16);
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+/* Buttons */
+.mstut-primary,
+.mstut-secondary{
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform .12s ease, filter .12s ease, background .12s ease;
+}
+
+.mstut-primary{
+  background: var(--primary-color);
+  color: var(--sidebar-color);
+}
+
+.mstut-primary:hover{
+  filter: brightness(1.02);
+}
+
+.mstut-secondary{
+  background: rgba(127,127,127,0.18);
+  color: var(--text-color);
+}
+
+.mstut-secondary:hover{
+  background: rgba(127,127,127,0.24);
+}
+
+.mstut-actions{
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+/* Each tutorial step is a full-screen scroll target */
+.mstut-step{
+  min-height: calc(100vh - var(--ms-header-h));
+  display: grid;
+  place-items: center;
+  padding: 36px 18px;
+  padding-right: 280px; /* make room for right-side nav */
+  box-sizing: border-box;
+}
+
+/* Pop-up card */
+.mstut-card{
+  width: min(640px, 92vw);
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  padding: 20px 18px;
+  border: 1px solid rgba(127,127,127,0.22);
+}
+
+.mstut-card h3{
+  margin: 8px 0 8px;
+  font-size: 22px;
+  color: var(--text-color);
+}
+
+.mstut-card p{
+  margin: 0;
+  opacity: 0.92;
+  line-height: 1.5;
+  color: var(--muted-color, var(--text-color));
+}
+
+.mstut-badge{
+  display: inline-block;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(127,127,127,0.18);
+  color: var(--text-color);
+}
+
+/* Smooth scroll, but respect reduced motion */
+html{
+  scroll-behavior: smooth;
+}
+
+/* ===== Tutorial progress nav (text list) ===== */
+.mstut-nav{
+  position: fixed;
+  /* Push nav below sticky header so it is not blocked */
+  top: calc(var(--ms-header-h) + 14px);
+  right: 40px; /* pulled inward from edge */
+  width: 240px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(127,127,127,0.12);
+  border: 1px solid rgba(127,127,127,0.18);
+  backdrop-filter: blur(8px);
+  z-index: 998; /* below header (999), above content */
+  box-sizing: border-box;
+
+  /* Never become unreachable on shorter viewports */
+  max-height: calc(100vh - var(--ms-header-h) - 28px);
+  overflow: auto;
+}
+
+.mstut-nav-link{
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 10px 10px;
+  display: grid;
+  gap: 2px;
+  transition: background .12s ease, border-color .12s ease;
+}
+
+.mstut-nav-link:hover{
+  background: rgba(127,127,127,0.14);
+}
+
+.mstut-nav-link.is-active{
+  background: rgba(127,127,127,0.18);
+  border: 1px solid rgba(127,127,127,0.22);
+}
+
+.mstut-nav-step{
+  font-weight: 800;
+  font-size: 12px;
+  opacity: 0.95;
+  color: var(--text-color);
+}
+
+.mstut-nav-desc{
+  font-size: 12px;
+  opacity: 0.82;
+  line-height: 1.25;
+  color: var(--muted-color, var(--text-color));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Mobile: move to bottom, take full width */
+@media (max-width: 720px){
+  .mstut-nav{
+    left: 10px;
+    right: 10px;
+    bottom: 12px;
+    top: auto;
+    width: auto;
+    max-height: 40vh;
+  }
+
+  .mstut-step{
+    padding-right: 18px; /* nav goes bottom on mobile */
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+  .mstut-card{ box-shadow: none; }
+  .tuthub-card{ transition: none; }
+}

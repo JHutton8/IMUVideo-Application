@@ -1,0 +1,37 @@
+/* styles/misc/a11y-noscript.css
+   ------------------------------------------------------------
+   - .noscript: visible message when JS is disabled
+   - prefers-reduced-motion: respect user motion preference
+   ------------------------------------------------------------ */
+
+.noscript{
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.12);
+  z-index: 200;
+
+  line-height: 1.35;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce){
+  html:focus-within{
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after{
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

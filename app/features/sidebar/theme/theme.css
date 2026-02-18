@@ -1,0 +1,83 @@
+/* Theme switch (bottom of sidebar) */
+
+.menu-bar .mode{
+  position: relative;
+  border-radius: 6px;
+  background: var(--primary-color-light);
+  transition: var(--tran-05);
+}
+
+.menu-bar .mode .mode-text{
+  padding-left: 16px;
+}
+
+.menu-bar .mode .toggle-switch{
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-width: 60px;
+  cursor: pointer;
+  border-radius: 6px;
+  background: var(--primary-color-light);
+  transition: var(--tran-05);
+}
+
+.toggle-switch .switch{
+  position: relative;
+  height: 22px;
+  width: 44px;
+  border-radius: 25px;
+  background: var(--toggle-color);
+  transition: transform var(--tran-03), background var(--tran-05);
+}
+
+.toggle-switch:active .switch{ transform: scale(0.98); }
+.toggle-switch:active .thumb{ filter: brightness(0.95); }
+
+.switch .thumb{
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  transform: translateY(-50%) translateX(0);
+  height: 15px;
+  width: 15px;
+  border-radius: 50%;
+  background: var(--sidebar-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s ease, background 0.5s ease;
+  will-change: transform;
+}
+
+.switch .thumb i{
+  position: absolute;
+  font-size: 14px;
+  line-height: 1;
+  transition: opacity var(--tran-05), transform var(--tran-05);
+  transform: scale(0.9);
+}
+
+body.dark .switch .thumb i{ transform: scale(1); }
+
+.switch .thumb .icon-sun{ opacity: 1; color: #f1c40f; }
+.switch .thumb .icon-moon{ opacity: 0; color: #3498db; }
+
+body.dark .switch .thumb{
+  transform: translateY(-50%) translateX(20px);
+}
+
+body.dark .switch .thumb .icon-sun{ opacity: 0; }
+body.dark .switch .thumb .icon-moon{ opacity: 1; }
+
+
+@media (prefers-reduced-motion: reduce){
+  .toggle-switch .switch,
+  .switch .thumb,
+  .switch .thumb i{
+    transition: none !important;
+  }
+}

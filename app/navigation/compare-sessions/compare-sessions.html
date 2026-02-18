@@ -1,0 +1,94 @@
+<section class="cmp" aria-label="Compare Sessions">
+  <header class="cmp-top">
+    <div class="cmp-titleWrap">
+      <h2 class="cmp-title">Compare Sessions</h2>
+      <p class="cmp-subtitle">Pick two sessions and compare high-level stats and metadata.</p>
+    </div>
+
+    <div class="cmp-topActions">
+      <button class="cmp-btn" type="button" id="cmpGoLibrary">
+        <i class="bx bx-library" aria-hidden="true"></i>
+        Library
+      </button>
+      <button class="cmp-btn cmp-btnPrimary" type="button" id="cmpSwap" disabled>
+        <i class="bx bx-refresh" aria-hidden="true"></i>
+        Swap
+      </button>
+    </div>
+  </header>
+
+  <section class="cmp-picker" aria-label="Pick sessions">
+    <div class="cmp-card">
+      <div class="cmp-cardHead">
+        <h3 class="cmp-cardTitle">Session A</h3>
+        <span class="cmp-chip" id="cmpAChip">—</span>
+      </div>
+
+      <select id="cmpSelectA" class="cmp-select" aria-label="Select session A"></select>
+
+      <div class="cmp-mini">
+        <div class="cmp-miniRow"><span class="cmp-miniK">Created</span><span class="cmp-miniV" id="cmpACreated">—</span></div>
+        <div class="cmp-miniRow"><span class="cmp-miniK">Updated</span><span class="cmp-miniV" id="cmpAUpdated">—</span></div>
+        <div class="cmp-miniRow"><span class="cmp-miniK">Tags</span><span class="cmp-miniV" id="cmpATags">—</span></div>
+      </div>
+    </div>
+
+    <div class="cmp-mid">
+      <div class="cmp-midIcon" aria-hidden="true"><i class="bx bx-git-compare"></i></div>
+      <div class="cmp-midHint">Choose two sessions</div>
+      <button class="cmp-btn cmp-btnPrimary" type="button" id="cmpRun" disabled>
+        Compare
+      </button>
+    </div>
+
+    <div class="cmp-card">
+      <div class="cmp-cardHead">
+        <h3 class="cmp-cardTitle">Session B</h3>
+        <span class="cmp-chip" id="cmpBChip">—</span>
+      </div>
+
+      <select id="cmpSelectB" class="cmp-select" aria-label="Select session B"></select>
+
+      <div class="cmp-mini">
+        <div class="cmp-miniRow"><span class="cmp-miniK">Created</span><span class="cmp-miniV" id="cmpBCreated">—</span></div>
+        <div class="cmp-miniRow"><span class="cmp-miniK">Updated</span><span class="cmp-miniV" id="cmpBUpdated">—</span></div>
+        <div class="cmp-miniRow"><span class="cmp-miniK">Tags</span><span class="cmp-miniV" id="cmpBTags">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cmp-results" aria-label="Comparison results">
+    <article class="cmp-card cmp-resultsCard">
+      <header class="cmp-cardHead">
+        <h3 class="cmp-cardTitle">Summary</h3>
+        <div class="cmp-cardHint" id="cmpSummaryHint">Select A and B to compare.</div>
+      </header>
+
+      <div class="cmp-grid" id="cmpGrid">
+        <!-- Filled by JS -->
+      </div>
+    </article>
+
+    <article class="cmp-card">
+      <header class="cmp-cardHead">
+        <h3 class="cmp-cardTitle">Next steps</h3>
+        <div class="cmp-cardHint">Jump to a viewer, or refine the selection.</div>
+      </header>
+
+      <div class="cmp-next">
+        <button class="cmp-btn cmp-btnPrimary" type="button" id="cmpOpenA" disabled>
+          <i class="bx bx-video" aria-hidden="true"></i>
+          View A
+        </button>
+        <button class="cmp-btn cmp-btnPrimary" type="button" id="cmpOpenB" disabled>
+          <i class="bx bx-video" aria-hidden="true"></i>
+          View B
+        </button>
+        <button class="cmp-btn" type="button" id="cmpClear">
+          <i class="bx bx-x" aria-hidden="true"></i>
+          Clear selection
+        </button>
+      </div>
+    </article>
+  </section>
+</section>

@@ -1,0 +1,38 @@
+<div class="lib-page">
+  <header class="lib-header">
+    <div>
+      <h2 class="lib-title">Library</h2>
+      <p class="lib-subtitle">Your saved sessions. Click View to open in the viewer, or Delete to remove.</p>
+    </div>
+
+    <div class="lib-actions">
+      <button class="btn btn-primary" id="libGoUpload" type="button">
+        <i class="bx bx-upload" aria-hidden="true"></i>
+        Upload
+      </button>
+      <button class="btn btn-ghost" id="libClearAll" type="button" title="Removes all sessions and stored files">
+        <i class="bx bx-trash" aria-hidden="true"></i>
+        Clear all
+      </button>
+    </div>
+  </header>
+
+  <div class="lib-toolbar">
+    <div class="lib-search">
+      <i class="bx bx-search" aria-hidden="true"></i>
+      <input id="libSearchInput" type="text" placeholder="Search sessions..." />
+    </div>
+    <div class="lib-count" id="libCount">0 sessions</div>
+  </div>
+
+  <section class="lib-list" id="libList" aria-label="Session list"></section>
+
+  <div class="lib-empty" id="libEmpty" hidden>
+    <div class="lib-empty-title">No sessions yet</div>
+    <div class="lib-empty-desc">Go to Upload Session to add your first one.</div>
+    <button class="btn btn-primary" id="libEmptyUpload" type="button">
+      <i class="bx bx-upload" aria-hidden="true"></i>
+      Upload a session
+    </button>
+  </div>
+</div>

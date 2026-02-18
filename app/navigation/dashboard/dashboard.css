@@ -1,0 +1,332 @@
+/* =========================
+   Dashboard page
+   File: app/navigation/dashboard/dashboard.css
+   ========================= */
+
+.dash{
+  --card-border: rgba(0,0,0,0.12);
+  --card-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --muted: rgba(0,0,0,0.55);
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+body.dark .dash{
+  --card-border: rgba(255,255,255,0.14);
+  --card-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  --muted: rgba(255,255,255,0.65);
+}
+
+.dash-top{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.dash-title{
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.dash-subtitle{
+  margin-top: 8px;
+  color: var(--text-color);
+  opacity: 0.82;
+  line-height: 1.45;
+  max-width: 70ch;
+}
+
+.dash-topActions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dash-date{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  box-shadow: var(--card-shadow);
+  font-size: 13px;
+  opacity: 0.92;
+}
+
+/* layout grids */
+.dash-grid{
+  display: grid;
+  gap: 14px;
+}
+
+.dash-kpis{
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+}
+
+/* Now that "Quick actions" is removed, dash-main becomes a single-column grid */
+.dash-main{
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+/* cards */
+.dash-card{
+  background: var(--sidebar-color);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+  padding: 16px;
+}
+
+.dash-cardHead{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dash-cardTitle{
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-color);
+}
+
+.dash-cardHint{
+  margin-top: 6px;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: var(--text-color);
+  opacity: 0.78;
+  line-height: 1.4;
+}
+
+/* KPI */
+.dash-kpi{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dash-kpiIcon{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(79, 179, 100, 0.16);
+  border: 1px solid rgba(79, 179, 100, 0.32);
+}
+
+.dash-kpiIcon i{
+  font-size: 22px;
+  color: var(--brand-color);
+}
+
+.dash-kpiLabel{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.72;
+}
+
+.dash-kpiValue{
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.dash-kpiMeta{
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.72;
+}
+
+/* buttons */
+.dash-btn{
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-color);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--tran-02);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-btn:hover{ transform: translateY(-1px); }
+.dash-btn:active{ transform: translateY(0); opacity: 0.92; }
+
+.dash-btnPrimary{
+  background: rgba(79, 179, 100, 0.18);
+  border-color: rgba(79, 179, 100, 0.38);
+}
+
+.dash-btnPrimary:hover{
+  background: rgba(79, 179, 100, 0.26);
+}
+
+.dash-btnGhost{
+  background: rgba(0,0,0,0.03);
+}
+
+body.dark .dash-btnGhost{
+  background: rgba(255,255,255,0.05);
+}
+
+.dash-btn:focus-visible{
+  outline: 2px solid rgba(79, 179, 100, 0.55);
+  outline-offset: 2px;
+}
+
+/* recents */
+.dash-recents{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+}
+
+.dash-recent{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+}
+
+body.dark .dash-recent{
+  background: rgba(255,255,255,0.04);
+}
+
+.dash-recentTitle{
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.dash-recentMeta{
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.78;
+  color: var(--text-color);
+}
+
+.dash-pill{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: rgba(79, 179, 100, 0.12);
+}
+
+/* empty state */
+.dash-empty{
+  margin-top: 6px;
+  border-radius: 16px;
+  border: 1px dashed var(--card-border);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.dash-emptyIcon{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.03);
+  border: 1px solid var(--card-border);
+}
+
+body.dark .dash-emptyIcon{
+  background: rgba(255,255,255,0.05);
+}
+
+.dash-emptyTitle{
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.dash-emptyDesc{
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.78;
+  color: var(--text-color);
+}
+
+/* ==========================================
+   Advanced entry reveal (tied to intro.js)
+   body.app-entering is set for ~1.2s
+   ========================================== */
+
+body.app-entering .dash-top,
+body.app-entering .dash-card{
+  opacity: 0;
+  transform: translateY(22px) scale(0.992);
+  filter: blur(3px);
+}
+
+.dash-top,
+.dash-card{
+  transition:
+    opacity 310ms ease,
+    transform 920ms cubic-bezier(.18,.9,.2,1),
+    filter 620ms ease;
+}
+
+/* Stagger effect via nth-child (works well with your markup) */
+body.app-entering .dash-kpis .dash-card:nth-child(1){ transition-delay: 60ms; }
+body.app-entering .dash-kpis .dash-card:nth-child(2){ transition-delay: 110ms; }
+body.app-entering .dash-kpis .dash-card:nth-child(3){ transition-delay: 160ms; }
+body.app-entering .dash-kpis .dash-card:nth-child(4){ transition-delay: 210ms; }
+body.app-entering .dash-main .dash-card:nth-child(1){ transition-delay: 260ms; }
+
+body:not(.app-entering) .dash-top,
+body:not(.app-entering) .dash-card{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* responsive */
+@media (max-width: 1100px){
+  .dash-kpis{ grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+  .dash-main{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px){
+  .dash-empty{
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .dash-topActions{
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .dash-top,
+  .dash-card{
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}

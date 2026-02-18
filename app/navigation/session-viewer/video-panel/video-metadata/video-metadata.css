@@ -1,0 +1,25 @@
+/* =========================
+   Video Metadata
+   File: app/navigation/session-viewer/video-meta/video-meta.css
+   ========================= */
+
+/* =========================
+   Video metadata
+   ========================= */
+
+.viewer-meta{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+}
+body.dark .viewer-meta{ background: rgba(255,255,255,0.04); }
+
+.viewer-metaRow{
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+}
+.viewer-metaLabel{ font-size: 12px; opacity: 0.75; color: var(--text-color); }
+.viewer-metaValue{ color: var(--text-color); }

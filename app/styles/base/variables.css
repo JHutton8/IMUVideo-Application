@@ -1,0 +1,31 @@
+:root{
+  /* Colors */
+  --brand-color: rgb(79, 179, 100);
+  --body-color: #E4E9F7;
+  --sidebar-color: #FFF;
+  --primary-color: #695CFE;
+  --primary-color-light: #F6F5FF;
+  --toggle-color: #DDD;
+  --text-color: #707070;
+  --viewer-warning: #6b2426;
+
+  /* Transitions */
+  --tran-02: all 0.2s ease;
+  --tran-03: all 0.3s ease;
+  --tran-04: all 0.4s ease;
+  --tran-05: all 0.5s ease;
+
+  /* Sidebar width (used by layout + overlays) */
+  --sidebar-width-open: 250px;
+  --sidebar-width-closed: 88px;
+  --sidebar-width: var(--sidebar-width-open);
+}
+
+body.dark{
+  --body-color: #18191A;
+  --sidebar-color: #242526;
+  --primary-color: #3A3B3C;
+  --primary-color-light: #3A3B3C;
+  --toggle-color: #FFF;
+  --text-color: #CCC;
+}

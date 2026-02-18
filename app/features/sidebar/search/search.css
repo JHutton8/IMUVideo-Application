@@ -1,0 +1,130 @@
+/* app/features/search/search.css
+   ------------------------------------------------------------
+   Global in-page search UI (sidebar) + match highlighting.
+
+   - Search UI lives in the sidebar
+   - Highlights are injected into #pageRoot by search.js using:
+       <mark class="ms-find-mark"> ... </mark>
+       + the active one also gets .ms-find-active
+   ------------------------------------------------------------ */
+
+/* Global in-page Search (Ctrl+F style) */
+.sidebar .search-box{
+  display: flex;
+  align-items: center;
+
+  position: relative;
+  overflow: visible;
+  z-index: 150;
+}
+
+.sidebar .search-box .icon{
+  flex: 0 0 60px;
+}
+
+.search-box input{
+  position: absolute;
+  left: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  height: 36px;
+  line-height: 36px;
+
+  width: 160px; /* JS expands */
+  max-width: calc(100vw - 90px);
+
+  outline: none;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  padding: 0 12px;
+
+  background: var(--primary-color-light);
+  color: var(--text-color);
+
+  box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+  transition: width var(--tran-05), opacity var(--tran-05), box-shadow var(--tran-05);
+
+  z-index: 160;
+}
+
+.search-box .search-controls{
+  position: absolute;
+  left: calc(60px + 160px + 8px);
+  top: 50%;
+
+  display: flex;
+  gap: 6px;
+  align-items: center;
+
+  z-index: 170;
+  pointer-events: none;
+
+  opacity: 0;
+  transform: translateY(-50%) translateX(-6px);
+  transition: opacity var(--tran-03), transform var(--tran-03);
+}
+
+.search-box .search-controls.is-visible{
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.search-box .search-btn{
+  pointer-events: auto;
+
+  border: none;
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  background: var(--primary-color-light);
+  color: var(--text-color);
+
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.search-box .search-btn:active{ transform: scale(0.98); }
+
+.search-box .search-count{
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.85;
+  padding-left: 4px;
+}
+
+/* Sidebar collapsed */
+.sidebar.close .search-box input{
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.sidebar.close .search-box .search-controls{
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   In-page Search Highlighting
+   ------------------------------------------------------------ */
+
+.ms-find-mark{
+  padding: 0 2px;
+  border-radius: 4px;
+}
+
+.ms-find-active{
+  outline: 2px solid rgba(0,0,0,0.35);
+  scroll-margin-top: 80px; /* keeps active match visible if you add sticky UI later */
+}
+
+body.dark .ms-find-active{
+  outline: 2px solid rgba(255,255,255,0.35);
+}

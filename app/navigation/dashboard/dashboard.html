@@ -1,0 +1,91 @@
+<!-- =========================
+     Dashboard page (HTML)
+     File: app/navigation/dashboard/dashboard.html
+     ========================= -->
+
+<section class="dash" aria-label="Dashboard">
+  <header class="dash-top">
+    <div class="dash-titleWrap">
+      <h2 class="dash-title">Dashboard</h2>
+      <p class="dash-subtitle" id="dashSubtitle">
+        Your motion tracking hub — recent sessions and stats.
+      </p>
+    </div>
+
+    <div class="dash-topActions">
+      <div class="dash-date" id="dashDate" aria-label="Today"></div>
+      <button class="dash-btn dash-btnPrimary" type="button" data-goto="Upload Session">
+        <i class="bx bx-upload" aria-hidden="true"></i>
+        Upload session
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI cards -->
+  <section class="dash-grid dash-kpis" aria-label="Overview">
+    <article class="dash-card dash-kpi">
+      <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-layer"></i></div>
+      <div class="dash-kpiBody">
+        <div class="dash-kpiLabel">Sessions in library</div>
+        <div class="dash-kpiValue" id="kpiSessions">—</div>
+        <div class="dash-kpiMeta" id="kpiSessionsMeta">Upload to get started</div>
+      </div>
+    </article>
+
+    <article class="dash-card dash-kpi">
+      <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-time-five"></i></div>
+      <div class="dash-kpiBody">
+        <div class="dash-kpiLabel">Last activity</div>
+        <div class="dash-kpiValue" id="kpiLastActivity">—</div>
+        <div class="dash-kpiMeta" id="kpiLastActivityMeta">No activity recorded yet</div>
+      </div>
+    </article>
+
+    <article class="dash-card dash-kpi">
+      <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-pulse"></i></div>
+      <div class="dash-kpiBody">
+        <div class="dash-kpiLabel">Avg. session length</div>
+        <div class="dash-kpiValue" id="kpiAvgLen">—</div>
+        <div class="dash-kpiMeta">Will update when sessions have duration data</div>
+      </div>
+    </article>
+
+    <article class="dash-card dash-kpi">
+      <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-chip"></i></div>
+      <div class="dash-kpiBody">
+        <div class="dash-kpiLabel">Local storage</div>
+        <div class="dash-kpiValue" id="kpiStorage">—</div>
+        <div class="dash-kpiMeta">Estimated usage on this device</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- Recents only (Quick actions removed) -->
+  <section class="dash-grid dash-main" aria-label="Dashboard content">
+    <article class="dash-card">
+      <header class="dash-cardHead dash-recentsHead">
+        <div>
+          <h3 class="dash-cardTitle">Recent sessions</h3>
+          <p class="dash-cardHint">Your latest activity appears here.</p>
+        </div>
+        <button class="dash-btn dash-btnGhost" type="button" data-goto="Session Library">
+          Open library
+        </button>
+      </header>
+
+      <div class="dash-recents" id="dashRecents">
+        <!-- Filled by dashboard.js -->
+        <div class="dash-empty">
+          <div class="dash-emptyIcon" aria-hidden="true"><i class="bx bx-folder-open"></i></div>
+          <div class="dash-emptyText">
+            <div class="dash-emptyTitle">No sessions yet</div>
+            <div class="dash-emptyDesc">Upload your first session to populate the dashboard.</div>
+          </div>
+          <button class="dash-btn dash-btnPrimary" type="button" data-goto="Upload Session">
+            Upload session
+          </button>
+        </div>
+      </div>
+    </article>
+  </section>
+</section>

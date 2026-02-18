@@ -1,0 +1,207 @@
+/* =========================
+   Session Viewer
+   File: app/navigation/session-viewer/session-viewer.css
+   ========================= */
+
+@import url("./video-panel/video-panel.css");
+@import url("./video-panel/video-metadata/video-metadata.css");
+@import url("./timestamps/timestamps.css");
+@import url("./time-sync/time-sync.css");
+@import url("./session-picker/session-picker.css");
+@import url("./imu-panel/imu-panel.css");
+
+.viewer-page{
+  --card-border: rgba(0,0,0,0.12);
+  --card-shadow: 0 10px 30px rgba(0,0,0,0.08);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body.dark .viewer-page{
+  --card-border: rgba(255,255,255,0.14);
+  --card-shadow: 0 16px 40px rgba(0,0,0,0.35);
+}
+
+/* Ensure native [hidden] always works on this page (protect against global overrides). */
+.viewer-page [hidden],
+.viewer-empty[hidden]{
+  display: none !important;
+}
+
+/* =========================
+   Header
+   ========================= */
+
+.viewer-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  position: relative;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.viewer-title{
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--text-color);
+}
+
+.viewer-subtitle{
+  margin: 6px 0 0 0;
+  color: var(--text-color);
+  opacity: 0.82;
+  line-height: 1.45;
+  max-width: 72ch;
+}
+
+.viewer-actions{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  position: relative;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+/* Session picker */
+.viewer-sessionPicker{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.02);
+
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+}
+
+body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
+
+.viewer-sessionLabel{
+  font-size: 12px;
+  opacity: 0.8;
+  color: var(--text-color);
+}
+
+.viewer-sessionSelect{
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 13px;
+  min-width: 240px;
+
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+}
+
+/* =========================
+   Layout + cards
+   ========================= */
+
+.viewer-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "video ts"
+    "video sync"
+    "imu   imu";
+  gap: 14px;
+  align-items: start;
+}
+
+/* Mobile override: kicks in below 900px */
+@media (max-width: 900px){
+  .viewer-grid{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "video"
+      "imu"
+      "ts"
+      "sync";
+  }
+}
+
+.viewer-card{
+  background: var(--sidebar-color);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.viewer-card-title{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.viewer-card-title i{ font-size: 18px; opacity: 0.9; }
+
+.viewer-card--video{ grid-area: video; }
+.viewer-card--sync{ grid-area: sync; }
+.viewer-card--imu{ grid-area: imu; }
+.viewer-card--ts{ grid-area: ts; }
+
+/* Shared button */
+.btn{
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-color);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+
+  transition: var(--tran-02);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:hover{ transform: translateY(-1px); }
+.btn:active{ transform: translateY(0); opacity: 0.92; }
+
+.btn.is-flash{
+  box-shadow: 0 0 0 3px rgba(230, 70, 70, 0.18);
+}
+
+.btn-ghost{ background: rgba(0,0,0,0.03); }
+body.dark .btn-ghost{ background: rgba(255,255,255,0.05); }
+
+
+/* =========================
+   Responsive (non-IMU)
+   ========================= */
+
+@media (max-width: 1000px){
+  .viewer-sessionSelect{ min-width: 200px; }
+
+  .viewer-grid{ grid-template-columns: 1fr; }
+  .viewer-videoWrap,
+  .viewer-video{
+    min-height: 260px;
+    height: 260px;
+  }
+}

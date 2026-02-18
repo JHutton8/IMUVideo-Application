@@ -1,4 +1,4 @@
-# IMUVideo Application
+# IMUVideo Application (README IS CURRENTLY OUTDATED)
 
 **An affordable, portable body tracking system for sports and physiotherapy applications**
 

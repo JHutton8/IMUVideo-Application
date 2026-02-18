@@ -1,0 +1,721 @@
+/* =========================
+   IMU Panel (extracted from session-viewer.css)
+   File: css/pages/session-viewer/imu-panel/imu-panel.css
+   ========================= */
+
+/* =========================
+   IMU tabs
+   ========================= */
+
+.viewer-imuTabs{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.viewer-tab{
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+  color: var(--text-color);
+
+  padding: 8px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: var(--tran-02);
+}
+body.dark .viewer-tab{ background: rgba(255,255,255,0.04); }
+
+.viewer-tab:hover{ transform: translateY(-1px); }
+
+.viewer-tab.is-active{
+  background: rgba(79, 179, 100, 0.18);
+  border-color: rgba(79, 179, 100, 0.38);
+}
+
+/* =========================
+   IMU plots + cursor
+   ========================= */
+
+.viewer-imuPlots{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cursor slider above the first plot */
+.viewer-cursor{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+body.dark .viewer-cursor{ background: rgba(255,255,255,0.04); }
+
+.viewer-cursorHead{
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.viewer-cursorTitle{
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.viewer-cursorVal{
+  font-size: 12px;
+  opacity: 0.85;
+  color: var(--text-color);
+}
+
+.viewer-cursorBody{
+  display: flex;
+  gap: 10px; /* keep in sync with .viewer-plotBody gap */
+  align-items: center;
+}
+
+.viewer-cursorCol{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.viewer-cursorRange{
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  display: block;
+  accent-color: rgba(79, 179, 100, 0.95);
+}
+
+.viewer-cursorSpacer{
+  width: 44px; /* keep in sync with .viewer-axisToggles width */
+}
+
+/* Center ONLY the Mark button */
+.viewer-markBtn{
+  width: fit-content;
+  align-self: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.viewer-markBtn.is-flash{
+  box-shadow: 0 0 0 3px rgba(230, 70, 70, 0.18);
+}
+
+/* If empty message shows, it should span all columns */
+#viewerImuEmpty{ grid-column: 1 / -1; }
+
+/* Empty IMU message should NOT tint the whole plots region */
+#viewerImuEmpty.viewer-empty--light{
+  position: static;
+  inset: auto;
+  background: transparent;
+  padding: 8px 4px 0;
+  color: var(--text-color);
+}
+
+.viewer-plot{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+}
+body.dark .viewer-plot{ background: rgba(255,255,255,0.04); }
+
+.viewer-plotHead{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.viewer-plotTitle{
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.viewer-plotSub{
+  font-size: 12px;
+  opacity: 0.75;
+  color: var(--text-color);
+}
+
+.viewer-plotBody{
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.viewer-plotCanvasWrap{
+  margin-top: 10px;
+  height: 160px;          /* stable height for Chart.js */
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  display: block;
+}
+
+.viewer-plotBody .viewer-plotCanvasWrap{
+  flex: 1;
+  min-width: 0;
+}
+
+.viewer-axisToggles{
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 44px;
+}
+
+.viewer-axisBtn{
+  border: 1px solid rgba(var(--axis-rgb), 0.55);
+  background: transparent;
+  color: rgb(var(--axis-rgb));
+  border-radius: 12px;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--tran-02);
+}
+body.dark .viewer-axisBtn{ background: rgba(255,255,255,0.04); }
+.viewer-axisBtn:hover{ transform: translateY(-1px); }
+.viewer-axisBtn:active{ transform: translateY(0); opacity: 0.92; }
+
+/* Off state */
+.viewer-axisBtn:not(.is-on){ opacity: 0.55; }
+
+/* Match button colors to chart dataset colors (X/Y/Z) */
+.viewer-axisBtn[data-axis="0"]{ --axis-rgb: 255, 82, 82; }   /* #ff5252 */
+.viewer-axisBtn[data-axis="1"]{ --axis-rgb: 0, 230, 118; }   /* #00e676 */
+.viewer-axisBtn[data-axis="2"]{ --axis-rgb: 64, 196, 255; }  /* #40c4ff */
+
+/* “Total” axis button (accelerometer) */
+.viewer-axisBtn--total{
+  border-color: rgba(255, 152, 0, 0.80);
+  color: rgb(255, 152, 0);
+}
+.viewer-axisBtn--total.is-on{
+  opacity: 1;
+}
+
+/* =========================
+   CSV preview
+   ========================= */
+
+.viewer-csv{
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  min-width: 0;
+}
+
+.viewer-csv-head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.viewer-csv-file{
+  font-weight: 600;
+  color: var(--text-color);
+  word-break: break-word;
+}
+
+.viewer-csv-hint{
+  font-size: 12px;
+  opacity: 0.75;
+  color: var(--text-color);
+}
+
+.viewer-csv-preview{
+  margin: 10px 0 0 0;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-color);
+  white-space: pre;
+}
+body.dark .viewer-csv-preview{ background: rgba(255,255,255,0.04); }
+
+/* =========================
+   Responsive (IMU-only)
+   ========================= */
+
+@media (max-width: 600px){
+  .viewer-plotBody{ flex-direction: column; }
+  .viewer-axisToggles{
+    width: auto;
+    flex-direction: row;
+  }
+  .viewer-axisBtn{ padding: 8px 12px; }
+}
+
+@media (max-width: 1000px){
+  .viewer-plotCanvasWrap{ height: 150px; }
+  .viewer-csv{ height: 360px; }
+}
+
+/* IMU Selector Tabs */
+.viewer-imu-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.viewer-imu-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  border: 1px solid var(--card-border);
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--text-color);
+
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: var(--tran-02);
+}
+
+body.dark .viewer-imu-tab {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.viewer-imu-tab:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+body.dark .viewer-imu-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.viewer-imu-tab.is-active {
+  background: rgba(79, 179, 100, 0.18);
+  border-color: rgba(79, 179, 100, 0.38);
+  color: var(--text-color);
+}
+
+body.dark .viewer-imu-tab.is-active {
+  background: rgba(79, 179, 100, 0.22);
+  border-color: rgba(79, 179, 100, 0.46);
+}
+
+.viewer-imu-tab i {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Sensor Fusion Section */
+.viewer-fusion {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+body.dark .viewer-fusion {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.viewer-fusion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--card-border);
+  flex-wrap: wrap;
+}
+
+.viewer-fusion-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.viewer-fusion-title i {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+.viewer-fusion-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.viewer-fusion-select {
+  padding: 6px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  font-size: 12px;
+  outline: none;
+  transition: var(--tran-02);
+}
+
+.viewer-fusion-select:focus {
+  border-color: rgba(79, 179, 100, 0.5);
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* 3D Visualisation */
+.viewer-fusion-viz {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--sidebar-color);
+  margin-bottom: 16px;
+}
+
+#fusionCanvas3D {
+  display: block;
+  border-radius: 8px;
+}
+
+/* Orientation Data Cards */
+.viewer-fusion-data {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.viewer-fusion-card {
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--sidebar-color);
+  transition: var(--tran-02);
+}
+
+.viewer-fusion-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body.dark .viewer-fusion-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.viewer-fusion-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.viewer-fusion-value {
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-color);
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.viewer-fusion-matrix {
+  margin: 0;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-color);
+  line-height: 1.5;
+  white-space: pre;
+}
+
+/* Algorithm Settings */
+.viewer-fusion-settings {
+  padding: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+body.dark .viewer-fusion-settings {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.viewer-fusion-param {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.viewer-fusion-param label {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.viewer-fusion-param input[type="range"] {
+  width: 100%;
+  accent-color: rgba(79, 179, 100, 0.95);
+  cursor: pointer;
+}
+
+.viewer-fusion-param input[type="range"]:focus {
+  outline: 2px solid rgba(79, 179, 100, 0.3);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .viewer-fusion-data {
+    grid-template-columns: 1fr;
+  }
+
+  .viewer-fusion-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Section header with COMBINED toggles */
+.viewer-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.viewer-section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* Combined toggle container */
+.viewer-combined-toggle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* View toggle tabs */
+.viewer-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+}
+
+body.dark .viewer-view-toggle {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.viewer-view-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  opacity: 0.6;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.viewer-view-tab i {
+  font-size: 16px;
+}
+
+.viewer-view-tab:hover {
+  opacity: 0.8;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.dark .viewer-view-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.viewer-view-tab.active {
+  opacity: 1;
+  background: var(--sidebar-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: rgba(79, 179, 100, 0.95);
+}
+
+body.dark .viewer-view-tab.active {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* View containers */
+.viewer-view-container {
+  display: none;
+}
+
+.viewer-view-container.active {
+  display: block;
+}
+
+/* IMPROVED FUSION LAYOUT: Side-by-side */
+.viewer-fusion-layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .viewer-fusion-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.viewer-fusion-viz-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--sidebar-color);
+}
+
+#fusionCanvas3D {
+  display: block;
+  border-radius: 8px;
+}
+
+/* Fusion data cards container */
+.viewer-fusion-data-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Orientation Data Cards */
+.viewer-fusion-data {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.viewer-fusion-card {
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--sidebar-color);
+  transition: var(--tran-02);
+}
+
+.viewer-fusion-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body.dark .viewer-fusion-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.viewer-fusion-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.viewer-fusion-value {
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-color);
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.viewer-fusion-matrix {
+  margin: 0;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-color);
+  line-height: 1.5;
+  white-space: pre;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .viewer-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .viewer-combined-toggle {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .viewer-view-toggle {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .viewer-view-tab {
+    flex: 1;
+    justify-content: center;
+  }
+}

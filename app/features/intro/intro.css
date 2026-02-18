@@ -1,0 +1,289 @@
+/* ==========================================================================
+   MoveSync — Intro / Splash UI
+   File: app/features/intro/intro.css
+
+   Goal:
+   - Advanced motion-themed transition:
+     1) Flow-field "motion vectors" canvas behind the intro
+     2) Kinetic exit (overlay fades + shears away)
+     3) Dashboard rises in 3D (scroll-down vibe)
+     4) Optional "scan + shutter" feel for complexity
+   ========================================================================== */
+
+:root{
+  --intro-ease: cubic-bezier(.18,.9,.2,1);
+  --intro-ease-soft: cubic-bezier(.2,.8,.2,1);
+}
+
+/* =========================
+   Intro overlay (index gate)
+   ========================= */
+
+.intro-screen{
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #070b10;
+  color: #e8eef7;
+  overflow: hidden;
+  z-index: 20000;
+
+  /* 3D context for fancy transforms */
+  perspective: 1100px;
+  transform-style: preserve-3d;
+
+  opacity: 1;
+  transform: translateY(0) rotateX(0) rotateZ(0);
+  transition:
+    opacity 620ms ease,
+    transform 900ms var(--intro-ease);
+}
+
+/* advanced motion field canvas injected by JS */
+.intro-field{
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+/* subtle "scanline + shimmer" to signal complexity */
+.intro-scan{
+  position: absolute;
+  inset: -40%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.045) 0px,
+      rgba(255,255,255,0.045) 1px,
+      rgba(255,255,255,0.00) 3px,
+      rgba(255,255,255,0.00) 6px
+    );
+  mix-blend-mode: overlay;
+  opacity: 0.25;
+  transform: translateY(-10%);
+  animation: scanDrift 6s ease-in-out infinite alternate;
+}
+
+@keyframes scanDrift{
+  from{ transform: translateY(-10%); }
+  to  { transform: translateY(10%); }
+}
+
+/* glow layers */
+.intro-glow{
+  position: absolute;
+  inset: -45%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 28% 35%, rgba(78, 163, 255, 0.18), transparent 45%),
+    radial-gradient(circle at 72% 65%, rgba(136, 255, 207, 0.12), transparent 52%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), transparent 55%);
+  filter: blur(18px);
+  animation: drift 4s ease-in-out infinite alternate;
+}
+
+@keyframes drift{
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(22px, -12px) scale(1.04); }
+}
+
+/* the main stage sits above all effects */
+.intro-stage{
+  position: relative;
+  z-index: 2;
+  text-align: center;
+
+  opacity: 0;
+  animation: stageFadeIn 900ms ease-out forwards;
+
+  transform:
+    translateY(38px)
+    rotateX(10deg)
+    translateZ(0);
+  transition: transform 1100ms var(--intro-ease-soft);
+}
+
+@keyframes stageFadeIn{
+  to { opacity: 1; }
+}
+
+/* when controls show, stage "lifts" slightly */
+.intro-stage.lift-up{
+  transform:
+    translateY(0)
+    rotateX(0deg)
+    translateZ(0);
+}
+
+.intro-logo{
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 28px rgba(0,0,0,0.42));
+
+  transform: scale(0.92);
+  animation: pop 900ms var(--intro-ease) forwards;
+}
+
+@keyframes pop{
+  to { transform: scale(1); }
+}
+
+.intro-title{
+  margin: 14px 0 6px;
+  font-size: 34px;
+  letter-spacing: 0.6px;
+  font-weight: 760;
+}
+
+.intro-actions{
+  min-height: 56px;
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+
+  transition: opacity 1100ms ease, transform 1100ms ease;
+}
+
+.intro-actions.is-visible{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.intro-hint{
+  display: block;
+  min-height: 24px;
+  margin-top: 12px;
+  font-size: 12px;
+
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+
+  transition: opacity 1100ms ease, transform 1100ms ease;
+}
+
+.intro-hint.is-visible{
+  opacity: 0.85;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+kbd{
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  font-size: 12px;
+}
+
+.intro-btn{
+  border: 1px solid rgba(255,255,255,0.14);
+  background: transparent;
+  color: #e8eef7;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 280ms ease, background 180ms ease, opacity 800ms ease;
+}
+
+.intro-btn:hover{ transform: translateY(-1px); }
+
+.intro-btn:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.intro-btn-primary{
+  background: rgba(79,179,100,0.18);
+  border-color: rgba(79,179,100,0.45);
+}
+
+.intro-btn-primary:hover{ background: rgba(79,179,100,0.26); }
+
+.intro-error{
+  margin-top: 12px;
+  font-size: 12px;
+  color: #ff6b7a;
+}
+
+/* =========================
+   Advanced exit: kinetic shutter
+   ========================= */
+
+/* the overlay "shutters" away with a tiny shear + lift + fade */
+.intro-screen.is-exiting{
+  opacity: 0;
+  transform:
+    translateY(-24px)
+    rotateX(10deg)
+    rotateZ(-0.6deg);
+  pointer-events: none;
+}
+
+/* =========================
+   App shell "scroll-down" reveal
+   ========================= */
+
+#appShell{
+  opacity: 0;
+
+  /* start below the fold and slightly tipped back */
+  transform:
+    translateY(clamp(120px, 34vh, 360px))
+    rotateX(16deg)
+    scale(0.985);
+
+  transform-origin: 50% 0%;
+  transition:
+    opacity 700ms ease,
+    transform 1100ms var(--intro-ease);
+  will-change: transform, opacity;
+}
+
+/* when entering: rises up + levels out */
+#appShell.is-entering{
+  opacity: 1;
+  transform:
+    translateY(0)
+    rotateX(0deg)
+    scale(1);
+}
+
+/* body class toggled by JS to drive page-level stagger */
+body.app-entering{
+  /* no visual here; used by dashboard.css for stagger */
+}
+
+/* =========================
+   Reduced motion
+   ========================= */
+
+@media (prefers-reduced-motion: reduce){
+  .intro-stage,
+  .intro-actions,
+  .intro-hint,
+  .intro-screen,
+  #appShell,
+  .intro-glow,
+  .intro-scan{
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}

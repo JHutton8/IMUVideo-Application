@@ -1,0 +1,49 @@
+<div class="viewer-page">
+  <header class="viewer-header">
+    <div>
+      <h2 class="viewer-title">Session Viewer</h2>
+      <p class="viewer-subtitle">Open a saved session to view its video and IMU data.</p>
+    </div>
+
+    <div class="viewer-actions">
+      <div class="viewer-sessionPicker">
+        <span class="viewer-sessionLabel">Session</span>
+        <select
+          id="viewerSessionSelect"
+          class="viewer-sessionSelect"
+          aria-label="Select a session"
+        >
+          <option value="">Select a session…</option>
+        </select>
+      </div>
+
+      <button class="btn btn-ghost" id="viewerGoLibrary" type="button">
+        <i class="bx bx-library" aria-hidden="true"></i>
+        Library
+      </button>
+    </div>
+  </header>
+
+  <section class="viewer-grid" aria-label="Viewer layout">
+    <!-- LEFT: VIDEO PANEL -->
+    <article class="viewer-card viewer-card--video">
+      <div id="viewerVideoPanelMount"></div>
+    </article>
+
+    <!-- RIGHT: TIMESTAMPS -->
+    <article class="viewer-card viewer-card--ts">
+      <div id="viewerTimestampsPanelMount"></div>
+    </article>
+
+    <!-- RIGHT: TIME SYNC -->
+    <article class="viewer-card viewer-card--sync">
+      <div id="viewerTimeSyncPanelMount"></div>
+    </article>
+
+    <!-- FULL WIDTH: IMU -->
+    <article class="viewer-card viewer-card--imu">
+      <div id="viewerImuPanelMount"></div>
+    </article>
+  </section>
+  
+</div>

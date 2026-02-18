@@ -1,0 +1,98 @@
+/* Global header + page root */
+
+.app-header{
+  padding: 14px 40px 10px;
+}
+
+.app-header::after{
+  content: "";
+  display: block;
+  height: 1px;
+  width: 30%;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 999px;
+}
+
+body.dark .app-header::after{
+  background: rgba(255,255,255,0.20);
+}
+
+.app-title{
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--brand-color);
+  line-height: 1.05;
+  letter-spacing: 0.8px;
+
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+body.dark .app-title{
+  background: transparent;
+}
+
+.app-subtitle{
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+  opacity: 0.75;
+
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+#pageRoot{
+  padding: 0 40px 40px;
+
+  /* Fill remaining height under the header inside .home (flex column) */
+  flex: 1 1 auto;
+  min-height: 1px;
+
+  /* Scroll only when content actually overflows */
+  overflow-y: auto;
+
+  /* soft surface so content stays readable */
+  background: transparent;
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  margin: 0 40px 40px;
+  padding: 18px;
+}
+
+/* Most pages inject a single root wrapper (div/section/main/etc.)
+   Give it no surface by default so only the animated background shows. */
+#pageRoot > *{
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border: 0 !important;
+}
+
+/* Common page wrapper class names (only if you use them) */
+#pageRoot .page,
+#pageRoot .page-content,
+#pageRoot .content,
+#pageRoot .surface,
+#pageRoot .panel{
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border: 0 !important;
+}
+
+#pageRoot.page-loading{ opacity: 0.7; }
+
+#pageRoot .page-error{
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+
+body.dark #pageRoot .page-error{
+  border-color: rgba(255,255,255,0.15);
+}

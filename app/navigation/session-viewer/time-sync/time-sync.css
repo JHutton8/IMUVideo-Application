@@ -1,0 +1,147 @@
+/* =========================
+   Time Sync
+   File: app/navigation/session-viewer/time-sync/time-sync.css
+   ========================= */
+
+/* =========================
+   Time Sync panel
+   ========================= */
+
+.viewer-sync{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+body.dark .viewer-sync{ background: rgba(255,255,255,0.04); }
+
+/* NEW: 2-column values grid (left: markers/offset, right: T1/T2) */
+.viewer-syncGrid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Optional: keep each column tidy */
+.viewer-syncCol{
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* rows already have padding */
+}
+
+/* Responsive: stack into 1 column on smaller widths */
+@media (max-width: 640px){
+  .viewer-syncGrid{
+    grid-template-columns: 1fr;
+  }
+}
+
+.viewer-syncRow{
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.viewer-syncLabel{ font-size: 12px; opacity: 0.75; color: var(--text-color); }
+.viewer-syncValue{ color: var(--text-color); }
+
+.viewer-syncBtns{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.viewer-syncHint{
+  font-size: 12px;
+  opacity: 0.8;
+  color: var(--text-color);
+  min-height: 16px;
+}
+
+/* Compute offset — its own color */
+#viewerSyncComputeOffsetBtn{
+  background: rgba(80, 160, 255, 0.18);
+  border-color: rgba(80, 160, 255, 0.40);
+}
+#viewerSyncComputeOffsetBtn:hover{
+  background: rgba(80, 160, 255, 0.26);
+}
+
+#viewerSyncClearBtn{
+  background: rgba(230, 70, 70, 0.18);
+  border-color: rgba(230, 70, 70, 0.40);
+}
+#viewerSyncClearBtn:hover{
+  background: rgba(230, 70, 70, 0.26);
+}
+
+/* Dark mode tweaks */
+body.dark #viewerSyncComputeOffsetBtn{
+  background: rgba(80, 160, 255, 0.22);
+  border-color: rgba(80, 160, 255, 0.46);
+}
+body.dark #viewerSyncClearBtn{
+  background: rgba(230, 70, 70, 0.22);
+  border-color: rgba(230, 70, 70, 0.46);
+}
+
+/* =========================
+   Follow/Manual as segmented toggles
+   ========================= */
+
+.viewer-syncToggleGroup{
+  display: inline-flex;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.03);
+}
+
+body.dark .viewer-syncToggleGroup{
+  background: rgba(255,255,255,0.05);
+}
+
+.viewer-syncToggle{
+  border: 0;
+  border-right: 1px solid var(--card-border);
+  border-radius: 0;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  background: transparent;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.viewer-syncToggle:last-child{
+  border-right: 0;
+}
+
+.viewer-syncToggle[aria-pressed="true"]{
+  background: rgba(80, 160, 255, 0.22);
+  opacity: 1;
+}
+
+body.dark .viewer-syncToggle[aria-pressed="true"]{
+  background: rgba(80, 160, 255, 0.28);
+}
+
+.viewer-syncToggle:disabled{
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.viewer-syncToggle:not(:disabled):hover{
+  background: rgba(0,0,0,0.05);
+}
+body.dark .viewer-syncToggle:not(:disabled):hover{
+  background: rgba(255,255,255,0.06);
+}

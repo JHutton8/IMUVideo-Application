@@ -1,0 +1,386 @@
+/* =========================
+   Video Panel
+   File: app/navigation/session-viewer/video-panel/video-panel.css
+   ========================= */
+
+/* =========================
+   Video
+   ========================= */
+
+.viewer-videoWrap{
+  position: relative;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  min-height: 400px;
+  height: 400px;
+}
+
+/* --- Fix: overlays should not steal clicks when hidden/unused --- */
+.viewer-video{
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+  pointer-events: auto;
+  object-fit: contain;
+}
+
+/* MoveNet pose overlay canvas */
+.viewer-poseCanvas{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.viewer-empty{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+  color: #fff;
+  background: rgba(0,0,0,0.65);
+
+  pointer-events: none;
+  z-index: 2;
+}
+
+.viewer-videoWrap.is-empty .viewer-empty{ pointer-events: auto; }
+
+.viewer-empty-title{ font-weight: 700; }
+.viewer-empty-desc{
+  margin-top: 6px;
+  opacity: 0.85;
+  font-size: 13px;
+  max-width: 55ch;
+}
+
+/* Light variant (used inside IMU plots panel, not over the video) */
+.viewer-empty--light{
+  background: rgba(0,0,0,0.04);
+  color: var(--text-color);
+}
+body.dark .viewer-empty--light{ background: rgba(255,255,255,0.06); }
+
+/* =========================
+   Custom video controls
+   ========================= */
+
+.viewer-videoControls{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+}
+body.dark .viewer-videoControls{ background: rgba(255,255,255,0.04); }
+
+.viewer-vcTop,
+.viewer-vcBottom{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewer-vcSpacer{ flex: 1; }
+
+.viewer-vcBtn{
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+  color: var(--text-color);
+
+  cursor: pointer;
+  transition: var(--tran-02);
+}
+body.dark .viewer-vcBtn{ background: rgba(255,255,255,0.04); }
+
+.viewer-vcBtn i{ font-size: 20px; }
+.viewer-vcBtn:hover{ transform: translateY(-1px); }
+.viewer-vcBtn:active{ transform: translateY(0); opacity: 0.92; }
+
+/* =========================
+   Active ICON colors (no border/background changes)
+   ========================= */
+
+.viewer-vcBtn.is-active-repeat i,
+.viewer-vcBtn.is-active-repeat i::before {
+  color: #16a34a !important;
+}
+
+.viewer-vcBtn.is-active-movement i,
+.viewer-vcBtn.is-active-movement i::before {
+  color: #4675d9 !important;
+}
+
+.viewer-vcBtn.is-active-stop i,
+.viewer-vcBtn.is-active-stop i::before {
+  color: #dc2626 !important;
+}
+
+.viewer-vcTime{
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.9;
+  user-select: none;
+}
+.viewer-vcTimeSep{ opacity: 0.55; }
+
+.viewer-vcSeek{
+  width: 100%;
+  accent-color: rgba(79, 179, 100, 0.95);
+}
+
+.viewer-vcVol{
+  width: 140px;
+  max-width: 40vw;
+  accent-color: rgba(79, 179, 100, 0.95);
+}
+
+.viewer-vcSpeedLabel{
+  font-size: 11px;
+  opacity: 0.75;
+  color: var(--text-color);
+}
+
+.viewer-vcSpeedRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.viewer-vcSpeedPills{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.02);
+}
+body.dark .viewer-vcSpeedPills{ background: rgba(255,255,255,0.04); }
+
+.viewer-vcPill{
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-color);
+
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+
+  cursor: pointer;
+  transition: var(--tran-02);
+  opacity: 0.85;
+}
+
+.viewer-vcPill:hover{
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.viewer-vcPill.is-active{
+  opacity: 1;
+  background: rgba(255,255,255,0.92);
+  color: #111;
+  border-color: rgba(0,0,0,0.08);
+}
+
+body.dark .viewer-vcPill.is-active{
+  background: rgba(255,255,255,0.92);
+  color: #111;
+}
+
+.viewer-vcHint{
+  flex: 1;
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.75;
+  color: var(--text-color);
+}
+
+.viewer-vcBtn:focus-visible,
+.viewer-vcSeek:focus-visible,
+.viewer-vcVol:focus-visible{
+  outline: 2px solid rgba(79, 179, 100, 0.55);
+  outline-offset: 2px;
+}
+
+/* Mark Video button: compact version for video controls row */
+.viewer-markBtn--video{
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Joint analysis panel (shown when MoveNet is active) */
+.viewer-joint{
+  margin-top: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.05);
+}
+body.dark .viewer-joint{
+  background: rgba(255,255,255,0.06);
+}
+
+.viewer-joint-row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.viewer-joint-select{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewer-joint-label{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.viewer-jointSelect{
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  font-size: 13px;
+  outline: none;
+}
+
+.viewer-joint-btns{
+  display: flex;
+  gap: 8px;
+}
+
+.viewer-joint-selected{
+  font-size: 13px;
+  color: var(--text-color);
+  opacity: 0.75;
+  flex: 1;
+  min-width: 180px;
+}
+
+/* Seek marker overlay */
+.viewer-vcSeekWrap{
+  position: relative;
+  width: 100%;
+}
+
+.viewer-vcSeekMarker{
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(232, 232, 22, 0.95); /* same yellow as IMU marker */
+  pointer-events: none;
+  z-index: 2;
+}
+
+
+/* =========================
+   Video metadata popover (info button)
+   ========================= */
+
+.viewer-infoBtn{
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  transition: var(--tran-02);
+  backdrop-filter: blur(6px);
+}
+
+.viewer-infoBtn i{ font-size: 20px; }
+
+.viewer-infoBtn:hover{ transform: translateY(-1px); background: rgba(0,0,0,0.55); }
+.viewer-infoBtn:active{ transform: translateY(0); opacity: 0.95; }
+
+.viewer-infoBtn:focus-visible{
+  outline: 2px solid rgba(79, 179, 100, 0.55);
+  outline-offset: 2px;
+}
+
+.viewer-infoBtn.is-pinned{
+  border-color: rgba(79, 179, 100, 0.65);
+}
+
+/* Popover container */
+.viewer-metaPopover{
+  position: absolute;
+  top: 56px;
+  right: 10px;
+  z-index: 6;
+
+  width: min(360px, calc(100% - 20px));
+  max-width: 360px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.72);
+  color: #fff;
+
+  padding: 10px 12px;
+  backdrop-filter: blur(10px);
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* Make existing metadata styles look good in dark overlay */
+.viewer-metaPopover .viewer-meta{
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.viewer-metaPopover .viewer-metaLabel{ color: rgba(255,255,255,0.75); }
+.viewer-metaPopover .viewer-metaValue{ color: #fff; }
+
+/* Optional: slightly tighter rows inside popover */
+.viewer-metaPopover .viewer-metaRow{ padding: 5px 0; }

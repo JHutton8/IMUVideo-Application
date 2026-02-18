@@ -1,0 +1,28 @@
+/* App Layout (fixed sidebar + scrollable content) */
+
+.home{
+  position: relative;
+  left: var(--sidebar-width);
+  height: 100vh;
+  width: calc(100% - var(--sidebar-width));
+
+  /* IMPORTANT: allow the global animated background (.app-bg) to show through */
+  background: transparent;
+
+  transition: var(--tran-05);
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
+  /* keep app content above the global background layer */
+  z-index: 1;
+}
+
+/* Optional: once JS sets --sidebar-width, this rule isn't needed.
+   You can remove it later if you want. */
+.sidebar.close ~ .home{
+  left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+}

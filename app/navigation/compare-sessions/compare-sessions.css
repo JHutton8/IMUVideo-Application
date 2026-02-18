@@ -1,0 +1,260 @@
+/* =========================
+   Compare Sessions page
+   File: css/pages/compare-sessions.css
+   ========================= */
+
+.cmp{
+  --card-border: rgba(0,0,0,0.12);
+  --card-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --muted: rgba(0,0,0,0.55);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body.dark .cmp{
+  --card-border: rgba(255,255,255,0.14);
+  --card-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  --muted: rgba(255,255,255,0.65);
+}
+
+.cmp-top{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.cmp-title{
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--text-color);
+}
+
+.cmp-subtitle{
+  margin-top: 8px;
+  color: var(--text-color);
+  opacity: 0.82;
+  line-height: 1.45;
+  max-width: 70ch;
+}
+
+.cmp-topActions{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cmp-picker{
+  display: grid;
+  grid-template-columns: 1fr 220px 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.cmp-card{
+  background: var(--sidebar-color);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+  padding: 16px;
+}
+
+.cmp-cardHead{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cmp-cardTitle{
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-color);
+}
+
+.cmp-cardHint{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.75;
+}
+
+.cmp-chip{
+  border: 1px solid var(--card-border);
+  background: rgba(105, 92, 254, 0.10);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.95;
+}
+
+.cmp-select{
+  width: 100%;
+  border: 1px solid var(--card-border);
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+  box-shadow: var(--card-shadow);
+}
+
+.cmp-mini{
+  margin-top: 12px;
+  border-top: 1px solid var(--card-border);
+  padding-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.cmp-miniRow{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-color);
+}
+
+.cmp-miniK{ opacity: 0.72; }
+.cmp-miniV{ opacity: 0.92; text-align: right; }
+
+.cmp-mid{
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px dashed var(--card-border);
+  background: rgba(0,0,0,0.02);
+  text-align: center;
+}
+
+body.dark .cmp-mid{
+  background: rgba(255,255,255,0.04);
+}
+
+.cmp-midIcon{
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.03);
+}
+
+body.dark .cmp-midIcon{
+  background: rgba(255,255,255,0.05);
+}
+
+.cmp-midHint{
+  color: var(--text-color);
+  opacity: 0.82;
+  font-size: 13px;
+}
+
+.cmp-results{
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 14px;
+  align-items: start;
+}
+
+.cmp-resultsCard{
+  min-height: 260px;
+}
+
+.cmp-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.cmp-metric{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(0,0,0,0.02);
+}
+
+body.dark .cmp-metric{
+  background: rgba(255,255,255,0.04);
+}
+
+.cmp-metricLabel{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.72;
+}
+
+.cmp-metricRow{
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.cmp-metricValue{
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  line-height: 1.2;
+}
+
+.cmp-metricSub{
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.72;
+}
+
+.cmp-next{
+  display: grid;
+  gap: 10px;
+}
+
+.cmp-btn{
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-color);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--tran-02);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cmp-btn:hover{ transform: translateY(-1px); }
+.cmp-btn:active{ transform: translateY(0); opacity: 0.92; }
+
+.cmp-btnPrimary{
+  background: rgba(79, 179, 100, 0.18);
+  border-color: rgba(79, 179, 100, 0.38);
+}
+
+.cmp-btnPrimary:hover{ background: rgba(79, 179, 100, 0.26); }
+
+.cmp-btn:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 1100px){
+  .cmp-picker{ grid-template-columns: 1fr; }
+  .cmp-mid{ order: 3; }
+  .cmp-results{ grid-template-columns: 1fr; }
+}

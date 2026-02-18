@@ -1,0 +1,17 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+html, body{
+  height: 100%;
+}
+
+body{
+  height: 100vh;
+  background: var(--body-color);
+  transition: var(--tran-05);
+  overflow: hidden; /* keep sidebar fixed */
+}

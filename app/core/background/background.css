@@ -1,0 +1,113 @@
+/* app/core/background/background.css
+   Global animated background behind the entire app.
+   Theme-aware via body.dark (your theme manager toggles this class).
+*/
+
+/* =========================
+   Theme variables (LIGHT default)
+   ========================= */
+
+:root{
+  /* Backdrop */
+  --app-bg-base: #f6f9ff;
+
+  /* Soft glow blobs */
+  --app-bg-glow-a: rgba(38, 120, 255, 0.16);
+  --app-bg-glow-b: rgba(0, 176, 255, 0.10);
+  --app-bg-glow-c: rgba(0, 0, 0, 0.06);
+
+  /* Injected motion-field elements (from intro.js) */
+  --app-field-opacity: 0.45;     /* canvas opacity in light mode */
+  --app-scan-opacity: 0.18;      /* scan overlay opacity in light mode */
+  --app-scan-line: rgba(0, 0, 0, 0.05);  /* scanline line color */
+  --app-scan-gap: rgba(0, 0, 0, 0.00);   /* scanline gap color */
+}
+
+/* =========================
+   Theme variables (DARK)
+   ========================= */
+
+body.dark{
+  --app-bg-base: #070b10;
+
+  --app-bg-glow-a: rgba(78, 163, 255, 0.18);
+  --app-bg-glow-b: rgba(136, 255, 207, 0.12);
+  --app-bg-glow-c: rgba(255, 255, 255, 0.06);
+
+  --app-field-opacity: 0.92;
+  --app-scan-opacity: 0.30;
+  --app-scan-line: rgba(255, 255, 255, 0.045);
+  --app-scan-gap: rgba(255, 255, 255, 0.00);
+}
+
+/* =========================
+   The global background layer
+   ========================= */
+
+.app-bg{
+  position: fixed;
+  inset: 0;
+  z-index: 0;            /* behind everything */
+  pointer-events: none;  /* never block clicks */
+  overflow: hidden;
+  background: var(--app-bg-base);
+  transition: background-color var(--tran-05), filter var(--tran-05);
+}
+
+/* Glow blobs */
+.app-bg::before{
+  content:"";
+  position:absolute;
+  inset:-45%;
+  background:
+    radial-gradient(circle at 28% 35%, var(--app-bg-glow-a), transparent 45%),
+    radial-gradient(circle at 72% 65%, var(--app-bg-glow-b), transparent 52%),
+    radial-gradient(circle at 50% 50%, var(--app-bg-glow-c), transparent 55%);
+  filter: blur(18px);
+  opacity: 1;
+  transition: opacity var(--tran-05), filter var(--tran-05);
+}
+
+/* Ensure app content sits above the background */
+#appShell{ position: relative; z-index: 1; }
+
+/* =========================
+   Theme-tune the injected intro elements
+   (intro.js injects .intro-field canvas + .intro-scan overlay)
+   ========================= */
+
+.app-bg .intro-field{
+  opacity: var(--app-field-opacity);
+  transition: opacity var(--tran-05);
+}
+
+/* Rebuild scan overlay for theme (dark uses white lines, light uses dark lines) */
+.app-bg .intro-scan{
+  opacity: var(--app-scan-opacity);
+  background:
+    repeating-linear-gradient(
+      0deg,
+      var(--app-scan-line) 0px,
+      var(--app-scan-line) 1px,
+      var(--app-scan-gap) 3px,
+      var(--app-scan-gap) 6px
+    );
+  transition: opacity var(--tran-05), background-image var(--tran-05);
+}
+
+/* ------------------------------------------------------------
+   Light theme readability fixes
+   (Your theme toggles body.dark on/off)  :contentReference[oaicite:1]{index=1}
+   ------------------------------------------------------------ */
+
+body:not(.dark){
+  /* Stronger text contrast */
+  --text-color: #0f172a;          /* near-black */
+  --brand-color: #24d665;         /* keep your green but readable */
+
+  /* If any areas still use body-color as a surface, keep it bright */
+  --body-color: #f6f9ff;
+
+  /* Slightly clearer light surfaces */
+  --toggle-color: rgba(15, 23, 42, 0.22);
+}

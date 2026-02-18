@@ -1,0 +1,42 @@
+/* =========================
+   Session Picker
+   File: app/navigation/session-viewer/session-picker/session-picker.css
+   ========================= */
+
+/* Session picker */
+.viewer-sessionPicker{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.02);
+
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+}
+
+body.dark .viewer-sessionPicker{
+  background: rgba(255,255,255,0.04);
+}
+
+.viewer-sessionLabel{
+  font-size: 12px;
+  opacity: 0.8;
+  color: var(--text-color);
+}
+
+.viewer-sessionSelect{
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 13px;
+  min-width: 240px;
+
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+}
