@@ -1,0 +1,22 @@
+<section class="tuthub" aria-label="Tutorial Hub">
+  <!-- HUB (menu) -->
+  <div class="tuthub-hero" id="tutHubHero">
+    <div class="tuthub-hero-inner">
+      <!-- Video shown ONLY on the tutorial start page (hub) -->
+      <div class="tuthub-video" id="tutHubVideo" aria-label="Tutorial hub video">
+        <video id="tutHubVideoEl" src="assets/videos/DEMO_2.mp4" controls playsinline preload="metadata"></video>
+      </div>
+
+      <h2 class="tuthub-title">Tutorials</h2>
+      <p class="tuthub-subtitle">Choose what you want to learn.</p>
+
+      <div class="tuthub-grid" id="tutHubGrid" aria-label="Tutorial list">
+        <!-- Cards are injected by tutorial.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- RUNNER (the auto-scroll tutorial gets rendered here) -->
+  <!-- IMPORTANT: stays hidden until a tutorial is selected -->
+  <div id="tutRunnerRoot" hidden></div>
+</section>

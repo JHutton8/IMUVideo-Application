@@ -1,0 +1,151 @@
+/* app/core/background/background.css
+   ------------------------------------------------------------
+   Global animated background behind the entire app.
+   Theme-aware via body.dark (your theme manager toggles this class).
+   ------------------------------------------------------------ */
+
+/* ============================================================
+   THEME VARIABLES
+   - Light theme is the default (:root)
+   - Dark theme overrides via body.dark
+   ============================================================ */
+
+:root{
+  /* Base backdrop (light) */
+  --app-bg-base: #f6f9ff;
+
+  /* Soft glow blobs (light) */
+  --app-bg-glow-a: rgba(38, 120, 255, 0.10);
+  --app-bg-glow-b: rgba(0, 176, 255, 0.06);
+  --app-bg-glow-c: rgba(0, 0, 0, 0.00); /* avoid dark blob in light theme */
+
+  /* Injected motion-field elements (intro.js creates these) */
+  --app-field-opacity: 0.22;             /* canvas field visibility (light) */
+
+  /* "Light strip" overlay (scanlines) in light mode:
+     Use tinted lines instead of dark lines to keep the page feeling bright. */
+  --app-scan-opacity: 0.06;
+  --app-scan-line: rgba(30, 136, 229, 0.075); /* blue-tinted strip */
+  --app-scan-gap: rgba(0, 0, 0, 0.00);
+}
+
+body.dark{
+  /* Base backdrop (dark) */
+  --app-bg-base: #070b10;
+
+  /* Glow blobs (dark) */
+  --app-bg-glow-a: rgba(78, 163, 255, 0.18);
+  --app-bg-glow-b: rgba(136, 255, 207, 0.12);
+  --app-bg-glow-c: rgba(255, 255, 255, 0.06);
+
+  /* More visible motion-field on dark */
+  --app-field-opacity: 0.92;
+
+  /* White scanlines on dark */
+  --app-scan-opacity: 0.30;
+  --app-scan-line: rgba(255, 255, 255, 0.045);
+  --app-scan-gap: rgba(255, 255, 255, 0.00);
+}
+
+/* ============================================================
+   GLOBAL BACKGROUND LAYER
+   ============================================================ */
+
+.app-bg{
+  position: fixed;
+  inset: 0;
+  z-index: 0;           /* sits behind app UI */
+  pointer-events: none; /* never blocks clicks */
+  overflow: hidden;
+
+  background: var(--app-bg-base);
+
+  /* Uses your global transition token(s) */
+  transition: background-color var(--tran-05), filter var(--tran-05);
+}
+
+/* Glow blobs layer */
+.app-bg::before{
+  content:"";
+  position: absolute;
+  inset: -45%; /* oversize so blur never clips at edges */
+
+  background:
+    radial-gradient(circle at 28% 35%, var(--app-bg-glow-a), transparent 45%),
+    radial-gradient(circle at 72% 65%, var(--app-bg-glow-b), transparent 52%),
+    radial-gradient(circle at 50% 50%, var(--app-bg-glow-c), transparent 55%);
+
+  filter: blur(18px);
+  opacity: 1;
+
+  transition: opacity var(--tran-05), filter var(--tran-05);
+}
+
+/* ============================================================
+   SOLID APP BACKGROUND
+   ------------------------------------------------------------
+   The intro gets the fancy effects.
+   The main app background should stay clean + solid.
+   We keep the layer for theme color, but remove glow blobs.
+   ============================================================ */
+
+/* No glow blobs behind the main app */
+.app-bg::before{
+  background: none;
+  filter: none;
+  opacity: 0;
+}
+
+/* Ensure app content sits above the background */
+#appShell{
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   THEME-TUNING FOR INTRO.JS INJECTED ELEMENTS
+   intro.js injects:
+   - .intro-field  (canvas motion field)
+   - .intro-scan   (scanline / strip overlay)
+   ============================================================ */
+
+.app-bg .intro-field{
+  opacity: var(--app-field-opacity);
+  transition: opacity var(--tran-05);
+}
+
+/* "Light strips" overlay:
+   Built as a repeating-linear-gradient so it is cheap + scalable. */
+.app-bg .intro-scan{
+  opacity: var(--app-scan-opacity);
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      var(--app-scan-line) 0px,
+      var(--app-scan-line) 1px,
+      var(--app-scan-gap)  3px,
+      var(--app-scan-gap)  6px
+    );
+
+  transition: opacity var(--tran-05), background-image var(--tran-05);
+}
+
+/* ============================================================
+   LIGHT THEME READABILITY TUNES
+   (applies only when NOT dark)
+   ============================================================ */
+
+body:not(.dark){
+  /* Stronger text contrast on bright backdrops */
+  --text-color: #0f172a;
+
+  /* Keep your brand green but ensure it still pops */
+  --brand-color: #24d665;
+
+  /* If any components rely on body color as surface */
+  --body-color: #f6f9ff;
+
+  /* UI toggles / separators */
+  --toggle-color: rgba(15, 23, 42, 0.22);
+}

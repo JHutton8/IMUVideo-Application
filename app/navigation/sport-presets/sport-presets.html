@@ -1,0 +1,202 @@
+<div class="sp-page">
+  <header class="sp-header">
+    <div>
+      <h2 class="sp-title">Sport Presets</h2>
+      <p class="sp-subtitle">
+        Create and manage sport configurations. Presets define default sensor selection,
+        key metrics, and timestamp types.
+      </p>
+    </div>
+
+    <div class="sp-actions">
+      <button class="btn btn-ghost" id="spImportBtn" type="button" title="Import presets JSON">
+        <i class="bx bx-import" aria-hidden="true"></i>
+        Import
+      </button>
+
+      <button class="btn btn-ghost" id="spExportBtn" type="button" title="Export presets JSON">
+        <i class="bx bx-export" aria-hidden="true"></i>
+        Export
+      </button>
+
+      <button class="btn btn-primary" id="spNewBtn" type="button">
+        <i class="bx bx-plus" aria-hidden="true"></i>
+        New preset
+      </button>
+
+      <input id="spImportFile" type="file" accept="application/json,.json" hidden />
+    </div>
+  </header>
+
+  <section class="sp-grid" aria-label="Sport presets layout">
+    <!-- LEFT: LIST -->
+    <aside class="sp-card sp-card--list" aria-label="Preset library">
+      <div class="sp-card-head">
+        <div class="sp-card-title">
+          <i class="bx bx-library" aria-hidden="true"></i>
+          Library
+        </div>
+
+        <div class="sp-search">
+          <i class="bx bx-search" aria-hidden="true"></i>
+          <input
+            id="spSearchInput"
+            type="text"
+            placeholder="Search presets..."
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search presets"
+          />
+        </div>
+      </div>
+
+      <div class="sp-list" id="spList" role="list"></div>
+
+      <div class="sp-empty" id="spListEmpty" hidden>
+        <i class="bx bx-folder-open" aria-hidden="true"></i>
+        <div>
+          <div class="sp-empty-title">No presets yet</div>
+          <div class="sp-empty-sub">Create a new preset to get started.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: EDITOR -->
+    <main class="sp-card sp-card--editor" aria-label="Preset editor">
+      <div class="sp-card-head sp-card-head--editor">
+        <div class="sp-card-title">
+          <i class="bx bx-edit-alt" aria-hidden="true"></i>
+          Preset
+        </div>
+
+        <div class="sp-editor-actions">
+          <button class="btn btn-ghost" id="spDuplicateBtn" type="button" disabled>
+            <i class="bx bx-copy" aria-hidden="true"></i>
+            Duplicate
+          </button>
+
+          <button class="btn btn-ghost sp-danger" id="spDeleteBtn" type="button" disabled>
+            <i class="bx bx-trash" aria-hidden="true"></i>
+            Delete
+          </button>
+
+          <button class="btn btn-primary" id="spSaveBtn" type="button" disabled>
+            <i class="bx bx-save" aria-hidden="true"></i>
+            Save
+          </button>
+        </div>
+      </div>
+
+      <div class="sp-editor" id="spEditor">
+        <div class="sp-editor-empty" id="spEditorEmpty">
+          <i class="bx bx-slider-alt" aria-hidden="true"></i>
+          <div>
+            <div class="sp-empty-title">Select a preset</div>
+            <div class="sp-empty-sub">
+              Choose an existing preset from the library, or create a new one.
+            </div>
+          </div>
+        </div>
+
+        <form class="sp-form" id="spForm" hidden>
+          <div class="sp-form-grid">
+            <label class="sp-field">
+              <span class="sp-label">Preset name</span>
+              <input id="spName" class="sp-input" type="text" placeholder="e.g., Sprint" />
+              <span class="sp-help">Used in projects to auto-select metrics and timestamp types.</span>
+            </label>
+
+            <label class="sp-field">
+              <span class="sp-label">Default sensor</span>
+              <select id="spDefaultSensor" class="sp-input">
+                <option value="accel">Accelerometer</option>
+                <option value="gyro">Gyroscope</option>
+                <option value="mag">Magnetometer</option>
+              </select>
+              <span class="sp-help">The default view when opening a session for this sport.</span>
+            </label>
+
+            <label class="sp-field">
+              <span class="sp-label">Overlay mode</span>
+              <select id="spOverlayMode" class="sp-input">
+                <option value="minimal">Minimal</option>
+                <option value="analysis">Analysis</option>
+              </select>
+              <span class="sp-help">Controls the default display style (can be overridden per session).</span>
+            </label>
+
+            <label class="sp-field sp-field--wide">
+              <span class="sp-label">Notes (optional)</span>
+              <textarea id="spNotes" class="sp-input sp-textarea" rows="4" placeholder="What does this preset optimize for?"></textarea>
+            </label>
+          </div>
+
+          <div class="sp-split">
+            <!-- Metrics -->
+            <section class="sp-panel">
+              <div class="sp-panel-head">
+                <div class="sp-panel-title">
+                  <i class="bx bx-line-chart" aria-hidden="true"></i>
+                  Key metrics
+                </div>
+                <div class="sp-panel-sub">Select what should be emphasized for this sport.</div>
+              </div>
+
+              <div class="sp-checkgrid" id="spMetricsGrid"></div>
+
+              <div class="sp-minirow">
+                <button class="btn btn-ghost" id="spMetricsSelectAll" type="button">Select all</button>
+                <button class="btn btn-ghost" id="spMetricsClear" type="button">Clear</button>
+              </div>
+            </section>
+
+            <!-- Timestamp types -->
+            <section class="sp-panel">
+              <div class="sp-panel-head">
+                <div class="sp-panel-title">
+                  <i class="bx bx-time-five" aria-hidden="true"></i>
+                  Timestamp types
+                </div>
+                <div class="sp-panel-sub">Add reusable event labels (shared across sessions).</div>
+              </div>
+
+              <div class="sp-tagrow">
+                <input
+                  id="spTagInput"
+                  class="sp-input"
+                  type="text"
+                  placeholder="Add timestamp type (e.g., Start, Jump, Finish)"
+                />
+                <button class="btn btn-primary" id="spAddTagBtn" type="button">
+                  <i class="bx bx-plus" aria-hidden="true"></i>
+                  Add
+                </button>
+              </div>
+
+              <div class="sp-tags" id="spTags"></div>
+
+              <div class="sp-minirow">
+                <label class="sp-field sp-field--inline">
+                  <span class="sp-label">Default window</span>
+                  <div class="sp-window">
+                    <input id="spWindowBefore" class="sp-input sp-num" type="number" min="0" step="1" value="5" />
+                    <span class="sp-window-mid">sec before</span>
+                    <input id="spWindowAfter" class="sp-input sp-num" type="number" min="0" step="1" value="3" />
+                    <span class="sp-window-mid">sec after</span>
+                  </div>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <div class="sp-footer">
+            <div class="sp-status">
+              <div class="sp-hint" id="spHint"></div>
+              <div class="sp-msg" id="spMsg"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </section>
+</div>

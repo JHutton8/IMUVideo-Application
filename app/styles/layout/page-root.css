@@ -1,0 +1,89 @@
+/* app/styles/layout/page-root.css
+   ------------------------------------------------------------
+   #pageRoot is the main scroll container for the app.
+   Goals:
+   - Keep scrollbar flush to the far right (no outer margins).
+   - Prevent content from being cut off at the bottom.
+   - Let the global animated background show through.
+   ------------------------------------------------------------ */
+
+#pageRoot{
+  /* Layout inside the shell (flex child) */
+  flex: 1 1 auto;
+  min-height: 0; /* critical: allows flex children to become scroll containers */
+
+  /* Scrolling behavior */
+  overflow-y: auto;            /* main scroll container */
+  overflow-x: hidden;          /* avoid horizontal wobble */
+  overscroll-behavior: contain;/* prevent page bounce/scroll chaining */
+
+  /* Keep scrollbar at the far right:
+     margins would create “dead space” between scrollbar and viewport edge */
+  margin: 0;
+
+  /* Use padding for internal spacing instead of margins */
+  padding: 18px 40px 40px;
+
+  box-sizing: border-box;
+
+  /* Transparent surface so the animated background is visible */
+  background: transparent;
+
+  /* Soft glass effect over animated background */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Slightly dim during route/page loading */
+#pageRoot.page-loading{
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------
+   Strip styling from page wrappers injected by routing/layout systems.
+   This ensures only your intended layout styles apply inside #pageRoot.
+   ------------------------------------------------------------ */
+
+/* Direct children reset (high leverage: catches unknown wrappers) */
+#pageRoot > *{
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border: 0 !important;
+}
+
+/* Known wrapper class reset (explicit coverage) */
+#pageRoot .page,
+#pageRoot .page-content,
+#pageRoot .content,
+#pageRoot .surface,
+#pageRoot .panel{
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border: 0 !important;
+}
+
+/* ------------------------------------------------------------
+   Error surface styling
+   ------------------------------------------------------------ */
+
+#pageRoot .page-error{
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+body.dark #pageRoot .page-error{
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ------------------------------------------------------------
+   Responsive spacing
+   ------------------------------------------------------------ */
+
+@media (max-width: 768px){
+  #pageRoot{
+    padding: 18px 18px 24px;
+  }
+}

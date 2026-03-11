@@ -1,0 +1,75 @@
+/* app/styles/layout/header.css
+   ------------------------------------------------------------
+   Header only
+   - Solid (non-transparent) background
+   - No backdrop blur (prevents "blurry page behind header")
+   ------------------------------------------------------------ */
+
+.app-header{
+  padding: 14px 40px 10px;
+
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  /* SOLID header background */
+  background: #ffffff;
+
+  /* remove blur effect completely */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-header::after{
+  content: "";
+  display: block;
+
+  height: 1px;
+  width: 30%;
+  margin: 20px 0 10px;
+
+  background: rgba(0,0,0,0.15);
+  border-radius: 999px;
+}
+
+body.dark .app-header{
+  /* SOLID dark header background */
+  background: #0b0b0b;
+}
+
+body.dark .app-header::after{
+  background: rgba(255,255,255,0.20);
+}
+
+.app-title{
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.8px;
+
+  color: var(--brand-color);
+  background: transparent;
+
+  padding: 0;
+  border-radius: 0;
+}
+
+.app-subtitle{
+  margin-top: 8px;
+
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+
+  color: var(--text-color);
+  opacity: 0.75;
+}
+
+/* Responsive (header) */
+@media (max-width: 768px){
+  .app-header{
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}

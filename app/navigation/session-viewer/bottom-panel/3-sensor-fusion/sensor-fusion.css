@@ -1,0 +1,170 @@
+/* =========================
+   Sensor Fusion 3D Panel
+   File: app/navigation/session-viewer/bottom-panel/3-sensor-fusion/sensor-fusion.css
+   ========================= */
+
+/* Root wrapper inserted by sensor-fusion.js */
+.viewer-fusion{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Header */
+.viewer-fusion-header{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.viewer-fusion-title{
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.viewer-fusion-title i{
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* Main layout: 3D left, values right */
+.viewer-fusion-layout{
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 12px;
+  min-width: 0;
+  align-items: start;
+}
+
+/* Left: viz container matches other panels (borders, radii, bg) */
+.viewer-fusion-viz-container{
+  min-width: 0;
+}
+
+.viewer-fusion-viz{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Helps when canvas redraws quickly */
+  overflow: hidden;
+}
+body.dark .viewer-fusion-viz{
+  background: rgba(255,255,255,0.04);
+}
+
+/* Canvas */
+#fusionCanvas3D{
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  aspect-ratio: 1 / 1;
+
+  border-radius: 12px;
+  background: rgba(0,0,0,0.02);
+}
+body.dark #fusionCanvas3D{
+  background: rgba(255,255,255,0.03);
+}
+
+/* Right: data container */
+.viewer-fusion-data-container{
+  min-width: 0;
+}
+
+.viewer-fusion-data{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Cards match IMU plot / cursor styling conventions */
+.viewer-fusion-card{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+  min-width: 0;
+}
+body.dark .viewer-fusion-card{
+  background: rgba(255,255,255,0.04);
+}
+
+.viewer-fusion-label{
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-color);
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.viewer-fusion-value{
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-color);
+  opacity: 0.92;
+
+  word-break: break-word;
+}
+
+/* Matrix */
+.viewer-fusion-matrix{
+  margin: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.03);
+  padding: 10px;
+
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-color);
+  white-space: pre;
+  overflow: auto;
+  min-width: 0;
+}
+body.dark .viewer-fusion-matrix{
+  background: rgba(255,255,255,0.05);
+}
+
+/* If the placeholder is still visible for some reason, keep it from “double stacking” too aggressively */
+#viewerTabPanelFusion .viewer-tabPlaceholder{
+  margin-top: 6px;
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+@media (max-width: 1000px){
+  .viewer-fusion-layout{
+    grid-template-columns: 1fr;
+  }
+
+  #fusionCanvas3D{
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 520px){
+  .viewer-fusion-title{
+    font-size: 15px;
+  }
+}

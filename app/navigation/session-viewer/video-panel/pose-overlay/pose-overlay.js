@@ -11,153 +11,137 @@
   // movenet.js sits in the SAME folder as this file
   const MOVENET_SRC = new URL("./movenet.js", document.currentScript?.src || location.href).href;
 
-  // ---- Robust "load once" helpers (promise-based) ----
-  function loadExternalScriptOnce(src, globalCheckFn, key) {
-    // If already present, resolve immediately
-    try {
-      if (globalCheckFn?.()) return Promise.resolve();
-    } catch {}
+  // =======================================
+  // Robust external dependency loader
+  // =======================================
 
+  function loadScriptOnce(src, globalCheck) {
     window.__MoveSyncScriptPromises ??= {};
-    if (window.__MoveSyncScriptPromises[key]) return window.__MoveSyncScriptPromises[key];
 
-    window.__MoveSyncScriptPromises[key] = new Promise((resolve, reject) => {
-      let s =
-        document.querySelector(`script[data-movesync="${key}"]`) ||
-        document.querySelector(`script[src="${src}"]`);
+    if (globalCheck?.()) return Promise.resolve();
 
-      const isReady = () => {
+    if (window.__MoveSyncScriptPromises[src]) {
+      return window.__MoveSyncScriptPromises[src];
+    }
+
+    window.__MoveSyncScriptPromises[src] = new Promise((resolve, reject) => {
+      let existing = document.querySelector(`script[src="${src}"]`);
+
+      if (!existing) {
+        existing = document.createElement("script");
+        existing.src = src;
+        existing.async = true;
+        document.head.appendChild(existing);
+      }
+
+      const checkReady = () => {
         try {
-          return !!globalCheckFn?.();
-        } catch {
-          return false;
-        }
-      };
-
-      // Already ready? resolve now
-      if (isReady()) {
-        resolve();
-        return;
-      }
-
-      if (!s) {
-        s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.dataset.movesync = key;
-        document.head.appendChild(s);
-      }
-
-      const pollUntilReady = () => {
-        const start = performance.now();
-        const tick = () => {
-          if (isReady()) {
+          if (globalCheck?.()) {
             resolve();
-            return;
+            return true;
           }
-          if (performance.now() - start > 2000) {
-            reject(new Error(`Loaded ${src} but globals not available for key="${key}"`));
-            return;
-          }
-          requestAnimationFrame(tick);
-        };
-        tick();
+        } catch {}
+
+        return false;
       };
 
-      // If it loads after we attach listeners
-      s.addEventListener("load", pollUntilReady, { once: true });
-      s.addEventListener("error", () => reject(new Error("Failed to load: " + src)), { once: true });
+      // If already loaded
+      if (checkReady()) return;
 
-      // If it was already loaded before listeners attached, poll anyway
-      pollUntilReady();
+      existing.addEventListener("load", () => {
+        const waitForGlobal = () => {
+          if (checkReady()) return;
+          requestAnimationFrame(waitForGlobal);
+        };
+        waitForGlobal();
+      });
+
+      existing.addEventListener("error", () => {
+        reject(new Error("Failed to load script: " + src));
+      });
     });
 
-    return window.__MoveSyncScriptPromises[key];
+    return window.__MoveSyncScriptPromises[src];
   }
 
+
+  // =======================================
+  // Ensure TensorFlow + poseDetection
+  // =======================================
+
   async function ensureMoveNetDeps() {
-    // Ensure this whole dependency process runs only once
+
     window.__MoveNetDepsPromise ??= (async () => {
-      // Use ONE TFJS distribution to prevent duplicate kernel/backend registration spam
-      await loadExternalScriptOnce(
+
+      // 1️⃣ Load TensorFlow
+      await loadScriptOnce(
         "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js",
-        () => !!window.tf && typeof window.tf.ready === "function",
-        "tfjs"
+        () => window.tf && typeof window.tf.ready === "function"
       );
 
-      await loadExternalScriptOnce(
+      // 2️⃣ Wait for TFJS backend
+      await tf.ready();
+
+      // 3️⃣ Load pose detection
+      await loadScriptOnce(
         "https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js",
-        () => !!window.poseDetection && typeof window.poseDetection.createDetector === "function",
-        "pose-detection"
+        () => window.poseDetection && typeof window.poseDetection.createDetector === "function"
       );
 
-      // Backend init (idempotent)
-      await window.tf.ready();
-      const current = window.tf.getBackend?.();
-      if (current !== "webgl") {
-        try {
-          await window.tf.setBackend("webgl");
-          await window.tf.ready();
-        } catch (e) {
-          // Fallback: keep whatever backend TFJS chose (CPU / WASM / etc.)
-          console.warn("TFJS backend switch to webgl failed; continuing with", window.tf.getBackend?.(), e);
+      // 4️⃣ Ensure WebGL backend
+      try {
+        const backend = tf.getBackend?.();
+        if (backend !== "webgl") {
+          await tf.setBackend("webgl");
+          await tf.ready();
         }
+      } catch (err) {
+        console.warn("WebGL backend unavailable, using:", tf.getBackend?.());
       }
+
     })();
 
     return window.__MoveNetDepsPromise;
   }
 
+
+  // =======================================
+  // Load movenet.js (local script)
+  // =======================================
+
   function loadMoveNetOnce() {
-    // If movenet already present, resolve (handleStart/handleStop are installed by movenet.js)
+
     const isReady = () =>
-      typeof window.handleStart === "function" && typeof window.handleStop === "function";
+      typeof window.handleStart === "function" &&
+      typeof window.handleStop === "function";
 
     if (isReady()) return Promise.resolve();
 
-    // In-flight / loaded guard
     window.__MoveNetScriptPromise ??= new Promise((resolve, reject) => {
-      // Avoid injecting twice
-      const existing =
-        document.querySelector(`script[data-movesync="movenet"]`) ||
-        document.querySelector(`script[src="${MOVENET_SRC}"]`);
 
-      const pollUntilReady = () => {
-        const start = performance.now();
-        const tick = () => {
-          if (isReady()) {
-            resolve();
-            return;
-          }
-          if (performance.now() - start > 2000) {
-            reject(new Error("Loaded movenet.js but globals were not installed."));
-            return;
-          }
-          requestAnimationFrame(tick);
-        };
-        tick();
-      };
+      const src = new URL("./movenet.js", document.currentScript.src).href;
 
-      if (existing) {
-        existing.addEventListener("load", pollUntilReady, { once: true });
-        existing.addEventListener("error", () => reject(new Error("Failed to load: " + MOVENET_SRC)), {
-          once: true,
-        });
-        // If it already executed before we attached listeners
-        pollUntilReady();
-        return;
+      let script = document.querySelector(`script[src="${src}"]`);
+
+      if (!script) {
+        script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        document.head.appendChild(script);
       }
 
-      const s = document.createElement("script");
-      s.src = MOVENET_SRC;
-      s.async = true;
-      s.dataset.movesync = "movenet";
-      s.addEventListener("load", pollUntilReady, { once: true });
-      s.addEventListener("error", () => reject(new Error("Failed to load: " + MOVENET_SRC)), { once: true });
-      document.head.appendChild(s);
+      const waitUntilReady = () => {
+        if (isReady()) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(waitUntilReady);
+      };
 
-      // In case it loads synchronously from cache
-      pollUntilReady();
+      script.addEventListener("load", waitUntilReady);
+      script.addEventListener("error", () => reject(new Error("Failed to load movenet.js")));
+
+      waitUntilReady();
     });
 
     return window.__MoveNetScriptPromise;

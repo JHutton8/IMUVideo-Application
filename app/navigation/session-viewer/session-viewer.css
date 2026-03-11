@@ -1,16 +1,22 @@
-/* =========================
-   Session Viewer
-   File: app/navigation/session-viewer/session-viewer.css
-   ========================= */
-
+/* Session Viewer page styles */
 @import url("./video-panel/video-panel.css");
+@import url("./key-metrics-panel/key-metrics-panel.css");
+@import url("./bottom-panel/1-expanded-metrics/expanded-metrics-panel.css");
 @import url("./video-panel/video-metadata/video-metadata.css");
 @import url("./timestamps/timestamps.css");
 @import url("./time-sync/time-sync.css");
 @import url("./session-picker/session-picker.css");
-@import url("./imu-panel/imu-panel.css");
+@import url("./bottom-panel/2-imu/imu-panel.css");
+@import url("./bottom-panel/3-sensor-fusion/sensor-fusion.css");
 
 .viewer-page{
+  /* Higher-contrast local text colors for this page (fix: barely visible text) */
+  --viewer-text-strong: rgba(17, 19, 26, 0.96);
+  --viewer-text-muted: rgba(17, 19, 26, 0.78);
+
+  /* Override the app’s global text var ONLY inside viewer-page */
+  --text-color: var(--viewer-text-strong);
+
   --card-border: rgba(0,0,0,0.12);
   --card-shadow: 0 10px 30px rgba(0,0,0,0.08);
 
@@ -20,6 +26,11 @@
 }
 
 body.dark .viewer-page{
+  --viewer-text-strong: rgba(245, 247, 255, 0.94);
+  --viewer-text-muted: rgba(245, 247, 255, 0.78);
+
+  --text-color: var(--viewer-text-strong);
+
   --card-border: rgba(255,255,255,0.14);
   --card-shadow: 0 16px 40px rgba(0,0,0,0.35);
 }
@@ -55,8 +66,8 @@ body.dark .viewer-page{
 
 .viewer-subtitle{
   margin: 6px 0 0 0;
-  color: var(--text-color);
-  opacity: 0.82;
+  color: var(--viewer-text-muted);
+  opacity: 1; /* use the muted var directly */
   line-height: 1.45;
   max-width: 72ch;
 }
@@ -90,8 +101,8 @@ body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
 
 .viewer-sessionLabel{
   font-size: 12px;
-  opacity: 0.8;
-  color: var(--text-color);
+  color: var(--viewer-text-muted);
+  opacity: 1;
 }
 
 .viewer-sessionSelect{
@@ -107,6 +118,14 @@ body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
   pointer-events: auto;
 }
 
+/* Improve option contrast (some browsers render options faint) */
+.viewer-sessionSelect option{
+  color: #11131a;
+}
+body.dark .viewer-sessionSelect option{
+  color: #11131a; /* native dropdown often uses light bg; keep readable */
+}
+
 /* =========================
    Layout + cards
    ========================= */
@@ -115,9 +134,10 @@ body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-areas:
+    "video metrics"
     "video ts"
-    "video sync"
-    "imu   imu";
+    "sync  sync"
+    "tabs  tabs";
   gap: 14px;
   align-items: start;
 }
@@ -128,9 +148,10 @@ body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
     grid-template-columns: 1fr;
     grid-template-areas:
       "video"
-      "imu"
+      "metrics"
       "ts"
-      "sync";
+      "sync"
+      "tabs";
   }
 }
 
@@ -147,22 +168,44 @@ body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
   min-width: 0;
 }
 
+.viewer-card--video{ grid-area: video; }
+.viewer-card--sync{ grid-area: sync; }
+.viewer-card--metrics{ grid-area: metrics; }
+.viewer-card--ts{ grid-area: ts; }
+.viewer-card--tabs{ grid-area: tabs; }
+
+
+/* =========================
+   Card headings (panel titles)
+   ========================= */
+
 .viewer-card-title{
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 
-  font-weight: 600;
   font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+
   color: var(--text-color);
+  opacity: 1;
+
+  margin: 0 0 6px 0; /* gives breathing room before content */
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--card-border);
 }
 
-.viewer-card-title i{ font-size: 18px; opacity: 0.9; }
+.viewer-card-title i{
+  font-size: 18px;
+  opacity: 0.95;
+}
 
-.viewer-card--video{ grid-area: video; }
-.viewer-card--sync{ grid-area: sync; }
-.viewer-card--imu{ grid-area: imu; }
-.viewer-card--ts{ grid-area: ts; }
+/* Optional: make titles pop slightly more */
+body.dark .viewer-card-title{
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+}
+
 
 /* Shared button */
 .btn{
@@ -190,9 +233,106 @@ body.dark .viewer-sessionPicker{ background: rgba(255,255,255,0.04); }
 .btn-ghost{ background: rgba(0,0,0,0.03); }
 body.dark .btn-ghost{ background: rgba(255,255,255,0.05); }
 
+/* =========================
+   Tabs (main)
+   ========================= */
+
+.viewer-tabs{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.viewer-tabsHeader{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 10px;
+}
+
+.viewer-tabBtn{
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+  color: var(--text-color);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: var(--tran-02);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+}
+
+body.dark .viewer-tabBtn{ background: rgba(255,255,255,0.04); }
+
+.viewer-tabBtn i{
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.viewer-tabBtn:hover{ transform: translateY(-1px); }
+.viewer-tabBtn:active{ transform: translateY(0); opacity: 0.92; }
+
+.viewer-tabBtn.is-active{
+  background: rgba(0,0,0,0.06);
+  box-shadow: 0 0 0 3px rgba(60, 120, 255, 0.12);
+}
+
+body.dark .viewer-tabBtn.is-active{
+  background: rgba(255,255,255,0.08);
+}
+
+.viewer-tabsBody{ min-width: 0; }
+.viewer-tabPanel{ min-width: 0; }
+
+.viewer-tabPanelInner{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Optional placeholders */
+.viewer-tabPlaceholder{
+  padding: 12px;
+  border: 1px dashed var(--card-border);
+  border-radius: 14px;
+  opacity: 0.95;
+}
+
+.viewer-tabHint{
+  margin: 0;
+  color: var(--viewer-text-muted);
+  opacity: 1;
+  line-height: 1.4;
+  font-size: 13px;
+}
 
 /* =========================
-   Responsive (non-IMU)
+   IMU internal tabs removal helpers
+   ========================= */
+
+/* If JS marks an internal IMU tab header with this class, hide it. */
+.viewer-hideSubTabs{
+  display: none !important;
+}
+
+/* When we move the IMU fusion content into the Fusion main tab, wrap it for spacing. */
+.viewer-movedBlock{
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 10px;
+}
+
+/* =========================
+   Responsive
    ========================= */
 
 @media (max-width: 1000px){
@@ -205,3 +345,61 @@ body.dark .btn-ghost{ background: rgba(255,255,255,0.05); }
     height: 260px;
   }
 }
+/* ── Live speed HUD ────────────────────────────────── */
+.viewer-live-speed {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(60, 120, 255, 0.06);
+  border: 1px solid rgba(60, 120, 255, 0.15);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+body.dark .viewer-live-speed {
+  background: rgba(100, 150, 255, 0.08);
+  border-color: rgba(100, 150, 255, 0.2);
+}
+
+.viewer-live-speed-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-color);
+  opacity: 0.45;
+}
+
+.viewer-live-speed-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+#viewerLiveSpeedVal {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+  line-height: 1;
+}
+
+.viewer-live-speed-unit {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.5;
+  color: var(--text-color);
+}
+
+.viewer-live-speed-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-color);
+  opacity: 0.45;
+  min-height: 14px;
+}
+.viewer-live-speed-sub.is-still {
+  color: #22c55e;
+  opacity: 0.75;
+}
+body.dark .viewer-live-speed-sub.is-still { color: #4ade80; }

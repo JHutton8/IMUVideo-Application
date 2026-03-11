@@ -1,21 +1,20 @@
 /* app/styles/styles.css */
 /* Global stylesheet entrypoint (kept because index.html links it) */
 
-/* ---- App background ---- */
-@import url("../core/background/background.css");
-
 /* ---- Base (tokens + reset) ---- */
 @import url("./base/fonts.css");
 @import url("./base/variables.css");
 @import url("./base/reset.css");
 
-/* ---- Layout (global regions) ---- */
-@import url("./layout/shell-layout.css");
-@import url("./layout/header-page-root.css");
-@import url("./layout/responsive.css");
+/* ---- Layout (split by responsibility; responsive lives inside each file) ---- */
+@import url("./layout/background.css");  /* app background */
+@import url("./layout/shell.css");       /* app shell geometry + responsive */
+@import url("./layout/scrollbar.css");   /* scrollbars only */
+@import url("./layout/header.css");      /* header + responsive */
+@import url("./layout/page-root.css");   /* pageRoot + responsive */
 
 /* ---- Features (JS-driven UI pieces) ---- */
-@import url("../features/sidebar/sidebar.css");
+@import url("../features/sidebar/sidebar.css");        /* sidebar + responsive */
 @import url("../features/sidebar/theme/theme.css");
 @import url("../features/sidebar/search/search.css");
 

@@ -135,6 +135,18 @@
                 <span class="text nav-text">Dashboard</span>
               </a>
             </li>
+            
+            <li class="nav-link">
+              <a
+                href="#Sport%20Presets"
+                data-tooltip="Sport Presets"
+                data-page="Sport Presets"
+                data-src="app/navigation/sport-presets/sport-presets.html"
+              >
+                <i class="bx bx-slider-alt icon" aria-hidden="true"></i>
+                <span class="text nav-text">Sport Presets</span>
+              </a>
+            </li>
 
             <li class="nav-link">
               <a
@@ -194,7 +206,7 @@
                 href="#Tutorial"
                 data-tooltip="Tutorial"
                 data-page="Tutorial"
-                data-src="app/navigation/tutorial/tutorial.html"
+                data-src="app/features/tutorial/tutorial.html"
               >
                 <i class="bx bx-book-open icon" aria-hidden="true"></i>
                 <span class="text nav-text">Tutorial</span>
@@ -248,9 +260,10 @@
 
   <!-- Vendor libs -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <!-- App core FIRST (defines MoveSyncApp) -->
-  <script defer src="app/core/session-store/session-store.js"></script>
+  <script defer src="app/core/session-store.js"></script>
   <script defer src="app/app-shell.js"></script>
 
   <!-- Feature modules AFTER MoveSyncApp exists -->

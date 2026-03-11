@@ -29,7 +29,11 @@
       ),
       speed: 0.55,
       lineWidth: 1.05,
+      // Base trail fade (higher = clears faster)
       fade: 0.08,
+      // Extra fade while the "light strip travel" (burst) happens
+      // so lingering lines disappear faster right after the burst.
+      fadeBurst: 0.18,
       noiseScale: 0.0016,
       noiseTime: 0.0009,
       pointerForce: 0.10,
@@ -133,9 +137,14 @@
       t: 0,
       running: true,
       burst: 0,
+      fadeBoost: 0,
       pointer: { x: 0, y: 0, active: false },
       particles: [],
     };
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
 
     function resize() {
       state.w = overlayEl.clientWidth;
@@ -186,7 +195,12 @@
     }
 
     function fadeFrame() {
-      ctx.fillStyle = `rgba(7,11,16,${CONFIG.FIELD.fade})`;
+      // Clear faster during/just-after burst so delayed trails disappear sooner.
+      const base = CONFIG.FIELD.fade;
+      const burstFade = CONFIG.FIELD.fadeBurst ?? base;
+      const k = Math.max(state.burst, state.fadeBoost * 0.75);
+      const fade = lerp(base, burstFade, Math.min(1, k));
+      ctx.fillStyle = `rgba(7,11,16,${fade})`;
       ctx.fillRect(0, 0, state.w, state.h);
     }
 
@@ -282,14 +296,29 @@
     requestAnimationFrame(step);
 
     return {
-      burstRamp(ms = 520) {
+      burstRamp(ms = 520, decayMs = 650) {
+        // Phase 1: ramp up
         const t0 = performance.now();
-        const tick = (now) => {
+        state.fadeBoost = 1;
+
+        const up = (now) => {
           const k = Math.min(1, (now - t0) / ms);
           state.burst = k * k;
-          if (k < 1) requestAnimationFrame(tick);
+          if (k < 1) return requestAnimationFrame(up);
+
+          // Phase 2: ramp down (so "travel" is a hit, not a permanent state)
+          const t1 = performance.now();
+          const down = (now2) => {
+            const d = Math.min(1, (now2 - t1) / decayMs);
+            const kk = 1 - d;
+            state.burst = kk * kk;
+            state.fadeBoost = kk;
+            if (d < 1) requestAnimationFrame(down);
+          };
+          requestAnimationFrame(down);
         };
-        requestAnimationFrame(tick);
+
+        requestAnimationFrame(up);
       },
       destroy() {
         state.running = false;
@@ -385,12 +414,6 @@
 
     const overlay = byId(IDS.overlay);
     if (overlay) overlay.remove();
-
-    // Start the same motion background behind the whole app
-    const appBg = document.querySelector(".app-bg");
-    if (appBg) {
-      createMotionField(appBg);
-    }
 
     motionField?.destroy();
 

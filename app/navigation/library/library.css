@@ -1,6 +1,6 @@
 /* =========================
-   Session Library
-   File: css/pages/library.css
+   Library
+   File: app/navigation/library/library.css
    ========================= */
 
 .lib-page{
@@ -61,6 +61,21 @@ body.dark .lib-page{
 .btn-ghost{ background: rgba(0,0,0,0.03); }
 body.dark .btn-ghost{ background: rgba(255,255,255,0.05); }
 
+/* ✅ Danger button (Clear all) */
+.btn-danger{
+  background: rgba(230, 70, 70, 0.12);
+  border-color: rgba(230, 70, 70, 0.35);
+}
+.btn-danger:hover{
+  background: rgba(230, 70, 70, 0.18);
+  border-color: rgba(230, 70, 70, 0.50);
+  color: #e64646;
+}
+body.dark .btn-danger{
+  background: rgba(230, 70, 70, 0.16);
+  border-color: rgba(230, 70, 70, 0.45);
+}
+
 .lib-toolbar{
   display:flex;
   gap:12px;
@@ -93,53 +108,238 @@ body.dark .lib-search{ background: rgba(255,255,255,0.04); }
   width:100%;
   font-size:14px;
 }
+
+.lib-toolbar-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.lib-sort{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.02);
+  padding: 8px 10px;
+}
+body.dark .lib-sort{ background: rgba(255,255,255,0.04); }
+.lib-sort-label{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+.lib-sort select{
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 13px;
+}
+
 .lib-count{
   color:var(--text-color);
   opacity:0.8;
   font-size:13px;
 }
-
-.lib-list{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap:14px;
+.lib-selectedCount{
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(79, 179, 100, 0.10);
+  opacity: 0.95;
+}
+body.dark .lib-selectedCount{
+  background: rgba(79, 179, 100, 0.14);
 }
 
+/* ✅ STACKED vertically */
+.lib-list{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:10px; /* tighter */
+}
+
+/* =========================
+   ✅ Compact row-style cards
+   ========================= */
 .lib-card{
   background: var(--sidebar-color);
   border: 1px solid var(--card-border);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--card-shadow);
-  padding: 14px;
+  padding: 10px 12px; /* tighter */
+  display: grid;
+  grid-template-columns: 1fr auto; /* left content + right controls */
+  grid-template-rows: auto auto;   /* main row + optional panel row */
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+/* Selected */
+.lib-card.is-selected{
+  border-color: rgba(79, 179, 100, 0.65);
+  box-shadow: 0 0 0 3px rgba(79, 179, 100, 0.16), var(--card-shadow);
+}
+body.dark .lib-card.is-selected{
+  border-color: rgba(79, 179, 100, 0.75);
+  box-shadow: 0 0 0 3px rgba(79, 179, 100, 0.20), var(--card-shadow);
+}
+
+/* Left block (checkbox + title) */
+.lib-card-main{
   display:flex;
-  flex-direction:column;
+  align-items:flex-start;
   gap:10px;
   min-width:0;
 }
-.lib-card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
+
+.lib-card-titleWrap{
+  min-width:0;
 }
+
 .lib-card-title{
   margin:0;
-  font-size:15px;
-  font-weight:700;
+  font-size:14px;
+  font-weight:800;
   color:var(--text-color);
   word-break:break-word;
+  line-height: 1.25;
 }
+
 .lib-card-sub{
-  margin-top:6px;
+  margin-top:4px;
   font-size:12px;
   color:var(--text-color);
-  opacity:0.75;
+  opacity:0.72;
 }
-.lib-chipRow{
+
+/* Checkbox styling */
+.lib-check{
   display:flex;
+  align-items:flex-start;
+  padding-top: 1px;
+}
+.lib-check input[type="checkbox"]{
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: rgb(79, 179, 100);
+}
+
+/* Right-side controls */
+.lib-card-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  justify-content:center;
+  gap:6px;
+  min-width: 220px; /* gives room for notes + buttons */
+  max-width: 360px;
+}
+
+.lib-card-notesRight{
+  font-size:12px;
+  color:var(--text-color);
+  opacity:0.82;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width: 360px;
+}
+
+/* Compact button row on right */
+.lib-card-actionsRow{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
   gap:8px;
   flex-wrap:wrap;
 }
+
+/* Reuse compact mini buttons */
+.lib-mini-btn{
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-color);
+  padding: 7px 9px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--tran-02);
+  font-size: 12px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.lib-mini-btn:hover{ transform: translateY(-1px); }
+.lib-mini-btn:active{ transform: translateY(0); opacity:0.92; }
+.lib-mini-btn:disabled{ opacity:0.55; cursor:not-allowed; transform:none; }
+
+.lib-mini-danger:hover{
+  background: rgba(230, 70, 70, 0.1);
+  border-color: rgba(230, 70, 70, 0.35);
+  color: #e64646;
+}
+
+/* Sessions panel spans full width (thin spacing) */
+.lib-panel{
+  grid-column: 1 / -1;
+  margin-top: 0;
+  border: 1px dashed var(--card-border);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(0,0,0,0.02);
+}
+body.dark .lib-panel{ background: rgba(255,255,255,0.04); }
+
+/* Sessions list */
+.lib-sessions{
+  display: grid;
+  gap: 10px;
+}
+
+.lib-session{
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.01);
+  display: grid;
+  gap: 8px;
+}
+body.dark .lib-session{ background: rgba(255,255,255,0.03); }
+
+.lib-session-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.lib-session-title{
+  font-weight: 800;
+  color: var(--text-color);
+  font-size: 13px;
+  opacity: 0.92;
+  word-break: break-word;
+}
+.lib-mini-actions{
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+}
+
+.lib-session-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.82;
+}
+
+/* Chips (still used inside session meta) */
 .lib-chip{
   border: 1px solid var(--card-border);
   border-radius: 999px;
@@ -150,23 +350,6 @@ body.dark .lib-search{ background: rgba(255,255,255,0.04); }
   background: rgba(0,0,0,0.02);
 }
 body.dark .lib-chip{ background: rgba(255,255,255,0.04); }
-
-.lib-card-notes{
-  font-size:13px;
-  color:var(--text-color);
-  opacity:0.88;
-  line-height:1.45;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.lib-card-actions{
-  margin-top:4px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
 
 .lib-empty{
   border: 1px solid var(--card-border);
@@ -185,8 +368,4 @@ body.dark .lib-empty{ background: rgba(255,255,255,0.04); }
   color:var(--text-color);
   opacity:0.8;
   line-height:1.45;
-}
-
-@media (max-width: 1000px){
-  .lib-list{ grid-template-columns: 1fr; }
 }

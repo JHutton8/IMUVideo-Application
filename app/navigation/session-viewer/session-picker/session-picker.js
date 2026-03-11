@@ -1,80 +1,189 @@
 // =======================================
-// MoveSync component: Session Picker
-// File: pages/session-viewer/session-picker/session-picker.js
+// MoveSync component: Session Picker (Project -> Session)
+// File: app/navigation/session-viewer/session-picker/session-picker.js
 // =======================================
 
 (() => {
   "use strict";
 
-  function createSessionPicker({
-    selectId,
-    getSessions,
+  function createProjectSessionPicker({
+    projectSelectId,
+    sessionSelectId,
+    getProjects,
     getActiveSession,
-    setActiveSessionById,
+    setActiveSession,
     escapeHtml,
   }) {
     const $ = (id) => document.getElementById(id);
+    const safe = typeof escapeHtml === "function" ? escapeHtml : (s) => String(s ?? "");
 
-    function render() {
-      const select = $(selectId);
-      if (!select) return;
+    function normalizeProjects() {
+      const projects = (typeof getProjects === "function" ? getProjects() : []) || [];
+      return Array.isArray(projects) ? projects : [];
+    }
 
-      const sessions = (typeof getSessions === "function" ? getSessions() : []) || [];
+    function getActiveProjectIdFromActiveSession() {
       const active = typeof getActiveSession === "function" ? getActiveSession() : null;
-      const activeId = active ? String(active.id) : "";
+      const pid = active?.projectId ?? active?.project?.id ?? null;
+      return pid != null ? String(pid) : "";
+    }
 
-      const safe = typeof escapeHtml === "function" ? escapeHtml : (s) => String(s ?? "");
+    function getActiveSessionId() {
+      const active = typeof getActiveSession === "function" ? getActiveSession() : null;
+      return active?.id != null ? String(active.id) : "";
+    }
 
-      const options = [];
-      options.push(
-        `<option value="">${sessions.length ? "Select a session…" : "No sessions"}</option>`
-      );
+    function findProjectById(projects, projectId) {
+      return projects.find((p) => String(p?.id) === String(projectId));
+    }
 
-      sessions.forEach((s) => {
-        const id = String(s.id);
-        const name = safe(s.name || "Untitled session");
-        options.push(`<option value="${id}">#${id} — ${name}</option>`);
+    function getSessionsForProject(projectId) {
+      const projects = normalizeProjects();
+      const p = projectId ? findProjectById(projects, projectId) : null;
+      const direct = Array.isArray(p?.sessions) ? p.sessions : [];
+
+      if (direct.length) return direct;
+
+      // Fallback: ask the store (handles legacy flat sessions that still have projectId)
+      try {
+        const store = window.MoveSyncSessionStore;
+        const fromStore = store?.getSessionsForProject?.(projectId);
+        if (Array.isArray(fromStore) && fromStore.length) return fromStore;
+
+        // Legacy fallback: filter flat sessions if they carry projectId
+        const flat = store?.getSessions?.();
+        if (Array.isArray(flat)) {
+          const pid = String(projectId ?? "");
+          return flat.filter((s) => String(s?.projectId ?? s?.project?.id ?? "") === pid);
+        }
+      } catch (e) {
+        console.warn("[SessionPicker] getSessionsForProject fallback failed:", e);
+      }
+
+      return [];
+    }
+
+    function renderProjects() {
+      const projectSelect = $(projectSelectId);
+      if (!projectSelect) return;
+
+      const projects = normalizeProjects();
+      const activePid = getActiveProjectIdFromActiveSession();
+
+      const opts = [];
+      opts.push(`<option value="">${projects.length ? "Select a project…" : "No projects"}</option>`);
+
+      projects.forEach((p) => {
+        const pid = String(p?.id ?? "");
+        const name = safe(p?.name || "Untitled project");
+        opts.push(`<option value="${safe(pid)}">#${safe(pid)} — ${name}</option>`);
       });
 
-      select.innerHTML = options.join("");
-      select.value = activeId;
+      projectSelect.innerHTML = opts.join("");
+
+      // keep selection if possible
+      if (activePid && projects.some((p) => String(p?.id) === activePid)) {
+        projectSelect.value = activePid;
+      } else {
+        projectSelect.value = "";
+      }
+    }
+
+    function renderSessionsForProject(projectId) {
+      const sessionSelect = $(sessionSelectId);
+      if (!sessionSelect) return;
+
+      const sessions = getSessionsForProject(projectId);
+      const activeSid = getActiveSessionId();
+
+      const opts = [];
+      opts.push(`<option value="">${sessions.length ? "Select a session…" : "No sessions"}</option>`);
+
+      sessions.forEach((s) => {
+        const sid = String(s?.id ?? "");
+        const sname = safe(s?.name || "Untitled session");
+        opts.push(`<option value="${safe(sid)}">#${safe(sid)} — ${sname}</option>`);
+      });
+
+      sessionSelect.innerHTML = opts.join("");
+      sessionSelect.disabled = !sessions.length;
+
+      // keep selection if the active session belongs to this project
+      if (activeSid && sessions.some((ss) => String(ss?.id) === activeSid)) {
+        sessionSelect.value = activeSid;
+      } else {
+        sessionSelect.value = "";
+      }
+    }
+
+    function render() {
+      renderProjects();
+
+      const projectSelect = $(projectSelectId);
+      const pid = projectSelect?.value || getActiveProjectIdFromActiveSession() || "";
+      renderSessionsForProject(pid);
     }
 
     function wire(signal) {
-      const select = $(selectId);
-      if (!select) return;
+      const projectSelect = $(projectSelectId);
+      const sessionSelect = $(sessionSelectId);
+      if (!projectSelect || !sessionSelect) return;
 
-      select.addEventListener(
+      projectSelect.addEventListener(
         "change",
         () => {
-          const v = select.value;
-          if (!v) return;
-          if (typeof setActiveSessionById === "function") setActiveSessionById(v);
+          const pid = projectSelect.value || "";
+          renderSessionsForProject(pid);
+
+          // On project change: auto-select first session (if any) to avoid “blank viewer”
+          const sessions = getSessionsForProject(pid);
+
+          if (!pid || !sessions.length) return;
+
+          const first = sessions[0];
+          const sid = first?.id != null ? String(first.id) : "";
+          if (!sid) return;
+
+          // set select UI immediately
+          sessionSelect.value = sid;
+
+          // update runtime
+          try {
+            if (typeof setActiveSession === "function") setActiveSession(pid, sid);
+          } catch (e) {
+            console.warn("[SessionPicker] setActiveSession failed:", e);
+          }
         },
         { signal }
       );
 
-      document.addEventListener(
-        "movesync:active-session-changed",
+      sessionSelect.addEventListener(
+        "change",
         () => {
-          const active = typeof getActiveSession === "function" ? getActiveSession() : null;
-          select.value = active ? String(active.id) : "";
+          const pid = projectSelect.value || "";
+          const sid = sessionSelect.value || "";
+          if (!pid || !sid) return;
+
+          try {
+            if (typeof setActiveSession === "function") setActiveSession(pid, sid);
+          } catch (e) {
+            console.warn("[SessionPicker] setActiveSession failed:", e);
+          }
         },
         { signal }
       );
 
-      document.addEventListener(
-        "movesync:sessions-changed",
-        () => render(),
-        { signal }
-      );
+      // If active session changes elsewhere, sync UI
+      document.addEventListener("movesync:active-session-changed", () => render(), { signal });
+
+      // If projects change, re-render options
+      document.addEventListener("movesync:projects-changed", () => render(), { signal });
     }
 
     return { render, wire };
   }
 
-  // Global export
   window.MoveSyncSessionPicker = {
-    create: createSessionPicker,
+    create: createProjectSessionPicker,
   };
 })();

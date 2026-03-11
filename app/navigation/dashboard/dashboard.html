@@ -8,21 +8,26 @@
     <div class="dash-titleWrap">
       <h2 class="dash-title">Dashboard</h2>
       <p class="dash-subtitle" id="dashSubtitle">
-        Your motion tracking hub — recent sessions and stats.
+        Your motion tracking hub — projects, sessions and recent activity.
       </p>
     </div>
 
     <div class="dash-topActions">
       <div class="dash-date" id="dashDate" aria-label="Today"></div>
-      <button class="dash-btn dash-btnPrimary" type="button" data-goto="Upload Session">
-        <i class="bx bx-upload" aria-hidden="true"></i>
-        Upload session
-      </button>
     </div>
   </header>
 
   <!-- KPI cards -->
   <section class="dash-grid dash-kpis" aria-label="Overview">
+    <article class="dash-card dash-kpi">
+      <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-folder"></i></div>
+      <div class="dash-kpiBody">
+        <div class="dash-kpiLabel">Projects in library</div>
+        <div class="dash-kpiValue" id="kpiProjects">—</div>
+        <div class="dash-kpiMeta" id="kpiProjectsMeta">Create your first project</div>
+      </div>
+    </article>
+
     <article class="dash-card dash-kpi">
       <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-layer"></i></div>
       <div class="dash-kpiBody">
@@ -42,15 +47,6 @@
     </article>
 
     <article class="dash-card dash-kpi">
-      <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-pulse"></i></div>
-      <div class="dash-kpiBody">
-        <div class="dash-kpiLabel">Avg. session length</div>
-        <div class="dash-kpiValue" id="kpiAvgLen">—</div>
-        <div class="dash-kpiMeta">Will update when sessions have duration data</div>
-      </div>
-    </article>
-
-    <article class="dash-card dash-kpi">
       <div class="dash-kpiIcon" aria-hidden="true"><i class="bx bx-chip"></i></div>
       <div class="dash-kpiBody">
         <div class="dash-kpiLabel">Local storage</div>
@@ -60,15 +56,15 @@
     </article>
   </section>
 
-  <!-- Recents only (Quick actions removed) -->
+  <!-- Recents -->
   <section class="dash-grid dash-main" aria-label="Dashboard content">
     <article class="dash-card">
       <header class="dash-cardHead dash-recentsHead">
         <div>
           <h3 class="dash-cardTitle">Recent sessions</h3>
-          <p class="dash-cardHint">Your latest activity appears here.</p>
+          <p class="dash-cardHint">Your latest sessions across all projects.</p>
         </div>
-        <button class="dash-btn dash-btnGhost" type="button" data-goto="Session Library">
+        <button class="dash-btn dash-btnGhost" type="button" data-goto="Library">
           Open library
         </button>
       </header>
@@ -81,9 +77,6 @@
             <div class="dash-emptyTitle">No sessions yet</div>
             <div class="dash-emptyDesc">Upload your first session to populate the dashboard.</div>
           </div>
-          <button class="dash-btn dash-btnPrimary" type="button" data-goto="Upload Session">
-            Upload session
-          </button>
         </div>
       </div>
     </article>

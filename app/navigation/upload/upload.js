@@ -1,5 +1,5 @@
 // =======================================
-// MoveSync: Upload (single-page save)
+// MoveSync: Upload (Projects + Sessions)
 // File: app/navigation/upload/upload.js
 // =======================================
 
@@ -9,11 +9,26 @@
   window.MoveSyncPages = window.MoveSyncPages || {};
   const PAGE_NAME = "Upload";
 
+  // -------------------------
+  // State
+  // -------------------------
   let state = {
+    // current session draft
     video: null,
     videoObjectUrl: null,
     imus: [],
     nextImuId: 1,
+    activeImuId: null,
+
+    // project draft
+    project: {
+      name: "",
+      notes: "",
+      sessions: [],
+      nextSessionId: 1,
+      createdAt: null,
+      updatedAt: null,
+    },
   };
 
   // -------------------------
@@ -46,56 +61,125 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
 
+  function store() {
+    return window.MoveSyncSessionStore || null;
+  }
+
   // -------------------------
-  // Validation rules
+  // Validation
   // -------------------------
   function imusValid() {
     if (state.imus.length === 0) return true;
     return state.imus.every((imu) => !!imu.file);
   }
 
-  // Save-ready rule:
-  // - video only OR IMU-only (>=1 and all valid) OR both
-  function hasSomethingToSave() {
+  function sessionHasSomethingToSave() {
     const hasVideo = !!state.video;
     const hasImu = state.imus.length > 0;
     const imuOk = imusValid();
     return hasVideo || (hasImu && imuOk);
   }
 
-  function readyMessage() {
+  function sessionReadyMessage() {
     const hasVideo = !!state.video;
     const hasImu = state.imus.length > 0;
     const imuOk = imusValid();
 
-    if (!hasVideo && !hasImu) return "Upload a video or add at least one IMU CSV to save.";
+    if (!hasVideo && !hasImu) return "Upload a video or add at least one IMU CSV to add a session.";
     if (hasImu && !imuOk) return "All added IMU sensors must have a CSV file.";
-    if (hasVideo && !hasImu) return "Ready: video-only session.";
-    if (!hasVideo && hasImu && imuOk) return "Ready: IMU-only session.";
-    return "Ready: video + IMU session.";
+    if (hasVideo && !hasImu) return "Ready: video-only session draft.";
+    if (!hasVideo && hasImu && imuOk) return "Ready: IMU-only session draft.";
+    return "Ready: video + IMU session draft.";
+  }
+
+  function projectReadyMessage() {
+    const n = state.project.sessions.length;
+    if (n <= 0) return "Add at least 1 session to save the project.";
+    return `Ready to save project with ${n} session${n === 1 ? "" : "s"}.`;
   }
 
   // -------------------------
   // Summary sync (right card)
   // -------------------------
-  function syncSummary() {
-    setText("sumVideo", state.video ? state.video.name : "None");
-    setText("sumImu", String(state.imus.length));
-    setText("readyCheckLine", readyMessage());
+  function syncProjectSummary() {
+    setText("sumSessions", String(state.project.sessions.length));
+
+    const last = state.project.sessions[state.project.sessions.length - 1] || null;
+    setText("sumDraft", last ? last.name : "—");
+
+    setText("projectReadyLine", projectReadyMessage());
   }
 
-  // -------------------------
-  // Buttons + hint
-  // -------------------------
   function syncButtons() {
-    const saveBtn = qs("saveSessionBtn");
-    if (saveBtn) saveBtn.disabled = !hasSomethingToSave();
-    setHint(readyMessage());
+    const addSessionBtn = qs("addSessionBtn");
+    if (addSessionBtn) addSessionBtn.disabled = !sessionHasSomethingToSave();
+
+    const saveProjectBtn = qs("saveProjectBtn");
+    if (saveProjectBtn) saveProjectBtn.disabled = state.project.sessions.length === 0;
+
+    setHint(sessionReadyMessage());
   }
 
-  // =========================================
+  // -------------------------
+  // Project sessions list render
+  // -------------------------
+  function renderProjectSessions() {
+    const list = qs("projectSessionsList");
+    const empty = qs("projectSessionsEmpty");
+    if (!list || !empty) return;
+
+    const sessions = state.project.sessions;
+
+    if (!sessions.length) {
+      list.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+
+    empty.style.display = "none";
+
+    list.innerHTML = sessions
+      .map((s) => {
+        const v = s.videoFile?.name ? escapeHtml(s.videoFile.name) : "—";
+        const imuCount = Array.isArray(s.imuFiles) ? s.imuFiles.length : 0;
+
+        return `
+          <div class="uw-proj-session" data-session-id="${escapeHtml(String(s.id))}">
+            <div class="uw-proj-session-top">
+              <div class="uw-proj-session-title">#${escapeHtml(String(s.id))} — ${escapeHtml(s.name || "Untitled session")}</div>
+              <button class="uw-mini-btn uw-mini-btn-danger" type="button" data-action="remove-session" title="Remove session">
+                <i class="bx bx-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <div class="uw-proj-session-meta">
+              <span class="uw-proj-pill"><i class="bx bx-video" aria-hidden="true"></i> ${v}</span>
+              <span class="uw-proj-pill"><i class="bx bx-chip" aria-hidden="true"></i> IMUs: ${escapeHtml(String(imuCount))}</span>
+            </div>
+            ${s.notes ? `<div class="uw-proj-session-notes">${escapeHtml(s.notes)}</div>` : ``}
+          </div>
+        `;
+      })
+      .join("");
+
+    // delegate remove
+    list.querySelectorAll('[data-action="remove-session"]').forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const card = e.target.closest(".uw-proj-session");
+        const id = card?.getAttribute("data-session-id");
+        if (!id) return;
+
+        state.project.sessions = state.project.sessions.filter((x) => String(x.id) !== String(id));
+        syncProjectSummary();
+        renderProjectSessions();
+        syncButtons();
+      });
+    });
+  }
+
+  // -------------------------
   // Video
-  // =========================================
+  // -------------------------
   function setVideoEmpty(isEmpty) {
     const empty = qs("videoPreviewEmpty");
     if (!empty) return;
@@ -121,7 +205,6 @@
     setText("pickedVideoName", "");
     setVideoEmpty(true);
 
-    syncSummary();
     syncButtons();
   }
 
@@ -166,7 +249,6 @@
       showVideoPreview(file);
 
       clearMsg();
-      syncSummary();
       syncButtons();
     });
 
@@ -204,7 +286,6 @@
       showVideoPreview(file);
 
       clearMsg();
-      syncSummary();
       syncButtons();
     });
 
@@ -216,9 +297,9 @@
     setVideoEmpty(true);
   }
 
-  // =========================================
-  // IMU
-  // =========================================
+  // -------------------------
+  // IMU (Tabbed)
+  // -------------------------
   const generateImuId = () => `imu_${state.nextImuId++}`;
 
   function updateImuCount() {
@@ -226,31 +307,59 @@
     setText("imuCount", `${count} sensor${count === 1 ? "" : "s"}`);
   }
 
+  function setActiveImu(id) {
+    if (!id) return;
+    if (!state.imus.some((x) => x.id === id)) return;
+    state.activeImuId = id;
+    renderImus();
+    syncButtons();
+  }
+
+  function ensureActiveImu() {
+    if (state.imus.length === 0) {
+      state.activeImuId = null;
+      return;
+    }
+
+    if (state.activeImuId && state.imus.some((x) => x.id === state.activeImuId)) return;
+    state.activeImuId = state.imus[0].id;
+  }
+
   function addImu() {
+    const id = generateImuId();
     state.imus.push({
-      id: generateImuId(),
+      id,
       label: `IMU ${state.imus.length + 1}`,
       file: null,
       csvText: "",
       skeletonNode: "",
     });
 
+    state.activeImuId = id;
+
     renderImus();
-    syncSummary();
     syncButtons();
   }
 
   function removeImu(id) {
     const idx = state.imus.findIndex((x) => x.id === id);
     if (idx === -1) return;
+
+    const wasActive = state.activeImuId === id;
     state.imus.splice(idx, 1);
 
     state.imus.forEach((imu, i) => {
       if (!imu.file && (!imu.label || imu.label.startsWith("IMU "))) imu.label = `IMU ${i + 1}`;
     });
 
+    if (state.imus.length === 0) {
+      state.activeImuId = null;
+    } else if (wasActive) {
+      const newIdx = Math.min(idx, state.imus.length - 1);
+      state.activeImuId = state.imus[newIdx].id;
+    }
+
     renderImus();
-    syncSummary();
     syncButtons();
   }
 
@@ -258,54 +367,74 @@
     const imu = state.imus.find((x) => x.id === id);
     if (!imu) return;
     Object.assign(imu, patch);
-    renderImuCard(id);
-    syncSummary();
+
+    renderImus();
     syncButtons();
   }
 
   function renderImus() {
     const container = qs("imuSlotsContainer");
     const empty = qs("imuEmptyState");
-    if (!container) return;
+    const tabs = qs("imuTabs");
+    const panel = qs("imuActivePanel");
+    if (!container || !tabs || !panel) return;
 
     updateImuCount();
 
     if (state.imus.length === 0) {
       if (empty) empty.hidden = false;
-      container.querySelectorAll(".uw-sensor").forEach((n) => n.remove());
+      tabs.hidden = true;
+      panel.hidden = true;
+      tabs.innerHTML = "";
+      panel.innerHTML = "";
       return;
     }
 
     if (empty) empty.hidden = true;
 
-    const ids = new Set(state.imus.map((x) => x.id));
-    container.querySelectorAll(".uw-sensor").forEach((node) => {
-      if (!ids.has(node.dataset.imuId)) node.remove();
+    ensureActiveImu();
+
+    tabs.hidden = false;
+    panel.hidden = false;
+
+    tabs.innerHTML = state.imus
+      .map((imu, i) => {
+        const active = imu.id === state.activeImuId;
+        const hasFile = !!imu.file;
+        const label = imu.label || `IMU ${i + 1}`;
+        return `
+          <button
+            class="uw-imu-tab"
+            type="button"
+            role="tab"
+            aria-selected="${active ? "true" : "false"}"
+            aria-controls="imuPanel_${escapeHtml(imu.id)}"
+            id="imuTab_${escapeHtml(imu.id)}"
+            data-imu-tab="${escapeHtml(imu.id)}"
+            title="${escapeHtml(label)}"
+          >
+            <span>${escapeHtml(label)}</span>
+            <span class="uw-imu-tab-badge ${hasFile ? "" : "is-missing"}" title="${
+              hasFile ? "CSV selected" : "CSV missing"
+            }">
+              ${hasFile ? "CSV" : "Missing"}
+            </span>
+          </button>
+        `;
+      })
+      .join("");
+
+    tabs.querySelectorAll("[data-imu-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-imu-tab");
+        setActiveImu(id);
+      });
     });
 
-    state.imus.forEach((imu) => {
-      let node = container.querySelector(`.uw-sensor[data-imu-id="${imu.id}"]`);
-      if (!node) {
-        node = document.createElement("div");
-        node.className = "uw-sensor";
-        node.dataset.imuId = imu.id;
-        container.appendChild(node);
-      }
-      updateImuCardContent(node, imu);
-    });
-  }
-
-  function renderImuCard(id) {
-    const container = qs("imuSlotsContainer");
-    if (!container) return;
-
-    const imu = state.imus.find((x) => x.id === id);
-    if (!imu) return;
-
-    const node = container.querySelector(`.uw-sensor[data-imu-id="${id}"]`);
-    if (!node) return;
-
-    updateImuCardContent(node, imu);
+    const activeImu = state.imus.find((x) => x.id === state.activeImuId) || state.imus[0];
+    panel.innerHTML = `<div class="uw-sensor" data-imu-id="${escapeHtml(activeImu.id)}"></div>`;
+    const card = panel.querySelector(".uw-sensor");
+    updateImuCardContent(card, activeImu);
   }
 
   function updateImuCardContent(node, imu) {
@@ -406,6 +535,8 @@
 
       const title = node.querySelector(".uw-sensor-title");
       if (title) title.textContent = target.label;
+
+      renderImus();
     });
 
     nodeSelect?.addEventListener("change", (e) => {
@@ -415,7 +546,7 @@
     });
 
     removeBtn?.addEventListener("click", () => {
-      if (state.imus.length === 1 || confirm(`Remove "${imu.label}"?`)) removeImu(imuId);
+      removeImu(imuId);
     });
 
     const openPicker = () => fileInput?.click();
@@ -426,7 +557,7 @@
       if (!file) return;
 
       if (!file.name.toLowerCase().endsWith(".csv")) {
-        alert("Please select a CSV file.");
+        setMsg("Please select a CSV file.");
         fileInput.value = "";
         return;
       }
@@ -435,7 +566,7 @@
         const csvText = await file.text();
         updateImu(imuId, { file, csvText });
       } catch {
-        alert("Failed to read CSV file.");
+        setMsg("Failed to read CSV file.");
         fileInput.value = "";
       }
     });
@@ -465,7 +596,7 @@
       if (!file) return;
 
       if (!file.name.toLowerCase().endsWith(".csv")) {
-        alert("Please drop a CSV file.");
+        setMsg("Please drop a CSV file.");
         return;
       }
 
@@ -473,121 +604,387 @@
         const csvText = await file.text();
         updateImu(imuId, { file, csvText });
       } catch {
-        alert("Failed to read CSV file.");
+        setMsg("Failed to read CSV file.");
       }
     });
   }
 
-  // =========================================
-  // Reset
-  // =========================================
-  function resetAll() {
-    const nameEl = qs("sessionName");
-    const notesEl = qs("sessionNotes");
-    if (nameEl) nameEl.value = "";
-    if (notesEl) notesEl.value = "";
-
+  // -------------------------
+  // Reset helpers
+  // -------------------------
+  function resetSessionDraft() {
     clearVideoPreview();
+
+    // session metadata
+    const sn = qs("sessionName");
+    if (sn) sn.value = "";
+    const snotes = qs("sessionNotes");
+    if (snotes) snotes.value = "";
+
+    // reset preset picker
+    const psel = qs("sessionPresetSelect");
+    if (psel) psel.value = "";
+    updatePresetPreview();
 
     state.imus = [];
     state.nextImuId = 1;
+    state.activeImuId = null;
     renderImus();
 
     clearMsg();
-
-    syncSummary();
     syncButtons();
   }
 
-  // =========================================
-  // Save session
-  // =========================================
-  async function saveSession() {
-    if (!hasSomethingToSave()) {
-      setMsg(readyMessage());
+  function resetProjectDraft() {
+    qs("projectName").value = "";
+    qs("projectNotes").value = "";
+
+    state.project = {
+      name: "",
+      notes: "",
+      sessions: [],
+      nextSessionId: 1,
+      createdAt: null,
+      updatedAt: null,
+    };
+
+    resetSessionDraft();
+    syncProjectSummary();
+    renderProjectSessions();
+    syncButtons();
+  }
+
+  // -------------------------
+  // Build session object (for project)
+  // -------------------------
+  function buildSessionFromDraft() {
+  const id = state.project.nextSessionId++;
+
+  const nameInput = (qs("sessionName")?.value || "").trim();
+  const notesInput = (qs("sessionNotes")?.value || "").trim();
+
+  const name = nameInput || `Session ${id}`;
+  const notes = notesInput || "";
+
+  const imuFiles = state.imus.map((imu) => imu.file).filter(Boolean);
+
+  // Resolve selected preset
+  const presetId = qs("sessionPresetSelect")?.value || "";
+  const preset = getPresetById(presetId);
+
+  return {
+    id,
+    name,
+    notes,
+    createdAt: new Date().toISOString(),
+    videoFile: state.video || null,
+    imus: state.imus.map((imu) => ({ ...imu })),
+    imuFiles,
+
+    // Preset / metrics
+    presetId: preset?.id || null,
+    presetName: preset?.name || null,
+    keyMetrics: Array.isArray(preset?.metrics) ? preset.metrics.slice() : [],
+
+    // Viewer compatibility (first IMU)
+    csvName: state.imus[0]?.file?.name || "",
+    csvText: state.imus[0]?.csvText || "",
+    imuFile: state.imus[0]?.file || null,
+    imuText: state.imus[0]?.csvText || "",
+  };
+}
+
+
+  // -------------------------
+  // Add session to project
+  // -------------------------
+  function addSessionToProject() {
+    if (!sessionHasSomethingToSave()) {
+      setMsg(sessionReadyMessage());
       return;
     }
 
-    window.MoveSync = window.MoveSync || {};
-    window.MoveSync.runtime = window.MoveSync.runtime || {};
-    window.MoveSync.runtime.sessionViewer = window.MoveSync.runtime.sessionViewer || {};
+    const sess = buildSessionFromDraft();
+    state.project.sessions.push(sess);
 
-    const runtime = window.MoveSync.runtime.sessionViewer;
-    runtime.sessions = runtime.sessions || [];
-    runtime.nextSessionId = runtime.nextSessionId || 1;
+    setMsg(`Added ${sess.name} to project.`);
+    resetSessionDraft();
 
-    const id = runtime.nextSessionId++;
-    const name = (qs("sessionName")?.value || "").trim() || "Untitled session";
-    const notes = (qs("sessionNotes")?.value || "").trim();
-
-    const session = {
-      id,
-      name,
-      notes,
-      createdAt: new Date().toISOString(),
-      videoFile: state.video || null,
-      imus: state.imus.map((imu) => ({ ...imu })),
-
-      // Viewer compatibility (first IMU)
-      csvName: state.imus[0]?.file?.name || "",
-      csvText: state.imus[0]?.csvText || "",
-      imuFile: state.imus[0]?.file || null,
-      imuText: state.imus[0]?.csvText || "",
-    };
-
-    if (window.MoveSyncSessionStore?.saveRuntimeSession) {
-      try {
-        await window.MoveSyncSessionStore.saveRuntimeSession(session);
-      } catch (e) {
-        console.warn("[session-store] save failed:", e);
-      }
-    }
-
-    runtime.sessions.push(session);
-    document.dispatchEvent(new CustomEvent("movesync:sessions-changed", { detail: { at: Date.now() } }));
-
-    runtime.activeSession = session;
-    document.dispatchEvent(
-      new CustomEvent("movesync:active-session-changed", { detail: { session, at: Date.now() } })
-    );
-
-    setMsg(`Saved session #${id}.`);
-
-    resetAll();
+    syncProjectSummary();
+    renderProjectSessions();
+    syncButtons();
   }
 
-  // =========================================
+  // -------------------------
+  // Save project to library
+  // -------------------------
+  async function saveProject() {
+    const s = store();
+    if (!s?.saveRuntimeProject) {
+      setMsg("Project store not available.");
+      return;
+    }
+
+    // pull latest inputs
+    state.project.name = (qs("projectName")?.value || "").trim() || "Untitled project";
+    state.project.notes = (qs("projectNotes")?.value || "").trim();
+
+    if (state.project.sessions.length === 0) {
+      setMsg("Add at least one session before saving.");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    state.project.createdAt = state.project.createdAt || now;
+    state.project.updatedAt = now;
+
+    // store will assign id
+    const projectToSave = {
+      name: state.project.name,
+      notes: state.project.notes,
+      createdAt: state.project.createdAt,
+      updatedAt: state.project.updatedAt,
+      sessions: state.project.sessions,
+    };
+
+    try {
+      const saved = await s.saveRuntimeProject(projectToSave);
+
+      // select last added session as active (optional)
+      const last = saved?.sessions?.[saved.sessions.length - 1] || null;
+      if (last) s.setActiveSession?.(saved.id, last.id);
+
+      setMsg(`Saved project "${state.project.name}".`);
+      resetProjectDraft();
+      document.dispatchEvent(new CustomEvent("movesync:projects-changed", { detail: { at: Date.now() } }));
+    } catch (e) {
+      console.warn("[Upload] save project failed:", e);
+      setMsg("Failed to save project.");
+    }
+  }
+
+  // -------------------------
+  // Import / Export (draft structure)
+  // Note: Files cannot be preserved in JSON.
+  // This is meant for importing project structure (session names/notes).
+  // -------------------------
+  function exportDraft() {
+    const name = (qs("projectName")?.value || "").trim() || state.project.name || "Untitled project";
+    const notes = (qs("projectNotes")?.value || "").trim() || state.project.notes || "";
+
+    const draft = {
+      format: "movesync-project-draft-v1",
+      name,
+      notes,
+      sessions: state.project.sessions.map((sess) => ({
+        id: sess.id,
+        name: sess.name,
+        notes: sess.notes || "",
+        createdAt: sess.createdAt,
+        // only filenames (not binaries)
+        videoName: sess.videoFile?.name || "",
+        imuNames: (sess.imuFiles || []).map((f) => f?.name || "").filter(Boolean),
+      })),
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(draft, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `movesync-project-draft-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setMsg("Exported draft (structure only).");
+  }
+
+  async function importDraftFromFile(file) {
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+      if (parsed.format !== "movesync-project-draft-v1") {
+        setMsg("Import failed: unsupported file format.");
+        return;
+      }
+
+      const importedName = String(parsed.name || "Imported project");
+      const importedNotes = String(parsed.notes || "");
+
+      // wipe current draft
+      state.project = {
+        name: importedName,
+        notes: importedNotes,
+        sessions: [],
+        nextSessionId: 1,
+        createdAt: null,
+        updatedAt: null,
+      };
+
+      qs("projectName").value = importedName;
+      qs("projectNotes").value = importedNotes;
+
+      const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+      sessions.forEach((s) => {
+        const id = state.project.nextSessionId++;
+        state.project.sessions.push({
+          id,
+          name: String(s?.name || `Session ${id}`),
+          notes: String(s?.notes || ""),
+          createdAt: s?.createdAt || new Date().toISOString(),
+          videoFile: null,
+          imus: [],
+          imuFiles: [],
+
+          // viewer compatibility
+          csvName: "",
+          csvText: "",
+          imuFile: null,
+          imuText: "",
+        });
+      });
+
+      resetSessionDraft();
+      syncProjectSummary();
+      renderProjectSessions();
+      syncButtons();
+
+      setMsg("Imported draft structure. Re-attach files in the session draft, then add sessions again (or keep imported placeholders).");
+    } catch (e) {
+      console.warn("[Upload] import failed:", e);
+      setMsg("Import failed: invalid JSON.");
+    }
+  }
+
+  // -------------------------
+  // Preset helpers
+  // -------------------------
+  const PRESETS_STORAGE_KEY = "movesync-sport-presets-v1";
+
+  function loadPresets() {
+    try {
+      const raw = localStorage.getItem(PRESETS_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  }
+
+  function getPresetById(id) {
+    if (!id) return null;
+    return loadPresets().find((p) => String(p.id) === String(id)) || null;
+  }
+
+  function populatePresetDropdown() {
+    const sel = qs("sessionPresetSelect");
+    if (!sel) return;
+
+    const presets = loadPresets();
+    const currentVal = sel.value;
+
+    // Rebuild options
+    sel.innerHTML = `<option value="">None — no key metrics</option>`;
+    for (const p of presets) {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name + (p.metrics?.length ? ` (${p.metrics.length} metrics)` : "");
+      sel.appendChild(opt);
+    }
+
+    // Restore previous value if still valid
+    if (currentVal && presets.some((p) => String(p.id) === currentVal)) {
+      sel.value = currentVal;
+    }
+  }
+
+  function updatePresetPreview() {
+    const sel = qs("sessionPresetSelect");
+    const preview = qs("sessionPresetPreview");
+    const pills = qs("sessionPresetPills");
+    if (!sel || !preview || !pills) return;
+
+    const preset = getPresetById(sel.value);
+    const metrics = window.MoveSyncMetrics || [];
+
+    if (!preset || !preset.metrics?.length) {
+      preview.hidden = true;
+      pills.innerHTML = "";
+      return;
+    }
+
+    preview.hidden = false;
+    pills.innerHTML = preset.metrics.map((id) => {
+      const meta = metrics.find((m) => m.id === id);
+      const label = meta?.label || id;
+      return `<span class="uw-metric-pill">${label}</span>`;
+    }).join("");
+  }
+
+  // -------------------------
   // Init / destroy
-  // =========================================
+  // -------------------------
   function init() {
-    qs("resetBtn")?.addEventListener("click", resetAll);
+    // project inputs
+    qs("projectName")?.addEventListener("input", () => {
+      state.project.name = (qs("projectName")?.value || "").trim();
+      syncProjectSummary();
+    });
+
+    qs("projectNotes")?.addEventListener("input", () => {
+      state.project.notes = (qs("projectNotes")?.value || "").trim();
+    });
+
+    // buttons
+    qs("resetSessionBtn")?.addEventListener("click", resetSessionDraft);
+
+    // Preset dropdown
+    populatePresetDropdown();
+    qs("sessionPresetSelect")?.addEventListener("change", updatePresetPreview);
+    qs("addSessionBtn")?.addEventListener("click", addSessionToProject);
+    qs("resetProjectBtn")?.addEventListener("click", resetProjectDraft);
+    qs("saveProjectBtn")?.addEventListener("click", saveProject);
+
+    // import/export
+    qs("exportDraftBtn")?.addEventListener("click", exportDraft);
+
+    const importInput = qs("importProjectInput");
+    qs("importProjectBtn")?.addEventListener("click", () => importInput?.click());
+    importInput?.addEventListener("change", async () => {
+      const f = importInput.files?.[0];
+      importInput.value = "";
+      await importDraftFromFile(f);
+    });
+
+    // session draft
     qs("addImuBtn")?.addEventListener("click", addImu);
-
-    qs("sessionName")?.addEventListener("input", () => {
-      syncSummary();
-      syncButtons();
-    });
-    qs("sessionNotes")?.addEventListener("input", () => {
-      syncSummary();
-      syncButtons();
-    });
-
     wireVideo();
-    qs("saveSessionBtn")?.addEventListener("click", saveSession);
-
     renderImus();
-    syncSummary();
-    syncButtons();
+
+    // initial
     clearMsg();
+    syncProjectSummary();
+    renderProjectSessions();
+    syncButtons();
+    setHint(sessionReadyMessage());
   }
 
   function destroy() {
     if (state.videoObjectUrl) URL.revokeObjectURL(state.videoObjectUrl);
+
     state = {
       video: null,
       videoObjectUrl: null,
       imus: [],
       nextImuId: 1,
+      activeImuId: null,
+      project: { name: "", notes: "", sessions: [], nextSessionId: 1, createdAt: null, updatedAt: null },
     };
   }
 

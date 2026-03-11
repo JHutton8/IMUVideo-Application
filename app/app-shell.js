@@ -76,6 +76,11 @@
       js: { always: ["app/navigation/dashboard/dashboard.js"] },
     },
 
+    "Sport Presets": {
+      css: "app/navigation/sport-presets/sport-presets.css",
+      js: { always: ["app/navigation/sport-presets/sport-presets.js"] },
+    },
+
     "Upload": {
       css: "app/navigation/upload/upload.css",
       js: { always: ["app/navigation/upload/upload.js"] },
@@ -97,13 +102,13 @@
     },
 
     "Tutorial": {
-      css: "app/navigation/tutorial/tutorial.css",
+      css: "app/features/tutorial/tutorial.css",
       js: {
         always: [
-          "app/navigation/tutorial/tutorials/tut.compare-sessions.js",
-          "app/navigation/tutorial/tutorials/tut.session-viewer.js",
-          "app/navigation/tutorial/tutorials/tut.library.js",
-          "app/navigation/tutorial/tutorial.js",
+          "app/features/tutorial/tutorials/tut.compare-sessions.js",
+          "app/features/tutorial/tutorials/tut.session-viewer.js",
+          "app/features/tutorial/tutorials/tut.library.js",
+          "app/features/tutorial/tutorial.js",
         ],
       },
     },
@@ -393,14 +398,12 @@
   function initFirstLoad() {
     dom.refreshMenuLinks();
 
-    // If user has started tracking before, ALWAYS open Dashboard on refresh/reload,
-    // regardless of whatever hash was in the URL.
     const forceDash = localStorage.getItem(FORCE_DASH_KEY) === "1";
     if (forceDash) {
       const current = app.router.currentHashName();
       if (current !== DASHBOARD_PAGE) {
         location.hash = encodeURIComponent(DASHBOARD_PAGE);
-        return; // hashchange will route
+        return;
       }
     }
 
@@ -432,9 +435,8 @@
       });
     }
 
-    app.sidebar?.initSidebarToggle?.();
-    app.theme?.initTheme?.();
-    app.search?.initGlobalSearch?.();
+    // NOTE: No direct feature init calls here.
+    // Sidebar/theme/search modules self-init on "movesync:app-init".
 
     initFirstLoad();
     document.dispatchEvent(new CustomEvent("movesync:app-init"));

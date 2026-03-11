@@ -1,0 +1,73 @@
+/* app/styles/layout/scrollbar.css
+   ------------------------------------------------------------
+   Scrollbar visuals ONLY.
+   Applies to the scroll container: #pageRoot
+   ------------------------------------------------------------ */
+
+/* =========================
+   Light theme (default)
+   ========================= */
+
+/* Firefox */
+#pageRoot{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.45) rgba(0,0,0,0.06);
+}
+
+/* Chromium / Safari */
+#pageRoot::-webkit-scrollbar{
+  width: 10px;
+}
+
+#pageRoot::-webkit-scrollbar-track{
+  background: rgba(0,0,0,0.06);
+}
+
+#pageRoot::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.40);
+  border-radius: 999px;
+
+  /* padded-thumb look */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+#pageRoot::-webkit-scrollbar-thumb:hover{
+  background: rgba(0,0,0,0.55);
+  background-clip: content-box;
+}
+
+#pageRoot::-webkit-scrollbar-corner{
+  background: transparent;
+}
+
+/* =========================
+   Dark theme overrides
+   ========================= */
+
+body.dark #pageRoot{
+  scrollbar-color: rgba(255,255,255,0.35) rgba(255,255,255,0.08);
+}
+
+body.dark #pageRoot::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+}
+
+body.dark #pageRoot::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.26);
+  background-clip: content-box;
+}
+
+body.dark #pageRoot::-webkit-scrollbar-thumb:hover{
+  background: rgba(255,255,255,0.40);
+  background-clip: content-box;
+}
+
+/* =========================
+   Reduced motion
+   ========================= */
+@media (prefers-reduced-motion: reduce){
+  #pageRoot{
+    scroll-behavior: auto;
+  }
+}

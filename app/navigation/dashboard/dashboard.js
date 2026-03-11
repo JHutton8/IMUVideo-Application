@@ -1,27 +1,15 @@
 // ============================
-// Dashboard page controller
+// Dashboard page controller (Projects -> Sessions)
 // File: app/navigation/dashboard/dashboard.js
 // ============================
 
 (() => {
   const PAGE_NAME = "Dashboard";
 
-  // Possible session storage keys across versions / pages.
-  // Dashboard will "best-effort" read whichever exists.
-  const SESSION_KEYS = [
-    "movesync:sessions",
-    "movesync-sessions",
-    "MoveSync:sessions",
-    "sessions",
-  ];
-
   const LAST_VISIT_KEY = "movesync:last-visit";
   const LAST_ACTIVITY_KEY = "movesync:last-activity";
 
-  // Small helper to get DOM elements by id
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = (id) => document.getElementById(id);
 
   function formatDate(d) {
     return d.toLocaleDateString(undefined, {
@@ -39,114 +27,8 @@
     });
   }
 
-  function tryParseJSON(value) {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Attempts to load sessions from localStorage using a list of possible keys.
-   * Supports either:
-   *   - Array directly:  [ {...}, {...} ]
-   *   - Object wrapper:  { sessions: [ ... ] }
-   */
-  function loadSessionsFromStorage() {
-    for (const key of SESSION_KEYS) {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-
-      const parsed = tryParseJSON(raw);
-
-      if (Array.isArray(parsed)) return { key, sessions: parsed };
-      if (parsed && Array.isArray(parsed.sessions)) return { key, sessions: parsed.sessions };
-    }
-    return { key: null, sessions: [] };
-  }
-
-  /**
-   * Rough estimate of localStorage usage (UTF-16 approximation).
-   * Good enough for a KPI-style display.
-   */
-  function estimateLocalStorageUsageKB() {
-    let bytes = 0;
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!k) continue;
-
-      const v = localStorage.getItem(k) || "";
-      bytes += (k.length + v.length) * 2;
-    }
-
-    // Never show 0 KB (looks odd). If storage is empty-ish, show 1 KB.
-    return Math.max(1, Math.round(bytes / 1024));
-  }
-
-  /**
-   * Renders up to 5 most recent sessions into the "Recent sessions" panel.
-   * If there are no sessions, we keep the static HTML empty-state already in the page.
-   */
-  function renderRecents(sessions) {
-    const root = $("dashRecents");
-    if (!root) return;
-
-    if (!sessions || sessions.length === 0) {
-      return; // keep the empty state markup
-    }
-
-    // Copy so we don't mutate the original array
-    const copy = sessions.slice();
-
-    // Best-effort sort by a date-like field, falling back to original order
-    copy.sort((a, b) => {
-      const da = Date.parse(a?.updatedAt || a?.date || a?.createdAt || "") || 0;
-      const db = Date.parse(b?.updatedAt || b?.date || b?.createdAt || "") || 0;
-      return db - da;
-    });
-
-    const recent = copy.slice(0, 5);
-
-    root.innerHTML = recent
-      .map((s, idx) => {
-        const title =
-          s?.name ||
-          s?.title ||
-          s?.sessionName ||
-          `Session ${String(idx + 1).padStart(2, "0")}`;
-
-        const whenRaw = s?.updatedAt || s?.date || s?.createdAt || "";
-        const when = whenRaw ? new Date(whenRaw) : null;
-
-        const metaParts = [];
-        if (when && !isNaN(when.getTime())) {
-          metaParts.push(`${formatDate(when)} · ${formatTime(when)}`);
-        }
-        if (s?.subject) metaParts.push(String(s.subject));
-        if (s?.label) metaParts.push(String(s.label));
-        if (s?.duration) metaParts.push(`Duration: ${String(s.duration)}`);
-
-        const meta = metaParts.length ? metaParts.join("  ·  ") : "No metadata available yet";
-        const badge = s?.type || s?.source || "session";
-
-        return `
-          <div class="dash-recent" data-open-viewer="true">
-            <div>
-              <div class="dash-recentTitle">${escapeHtml(title)}</div>
-              <div class="dash-recentMeta">${escapeHtml(meta)}</div>
-            </div>
-            <div class="dash-pill">${escapeHtml(String(badge))}</div>
-          </div>
-        `;
-      })
-      .join("");
-  }
-
-  // Prevent HTML injection when rendering dynamic session metadata.
   function escapeHtml(str) {
-    return String(str)
+    return String(str ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -154,13 +36,140 @@
       .replaceAll("'", "&#039;");
   }
 
-  /**
-   * Wire all navigation buttons that use data-goto="Page Name".
-   * Also lets the user click a recent card to go to Session Viewer.
-   */
+  function setText(id, value) {
+    const el = $(id);
+    if (el) el.textContent = value;
+  }
+
+  function store() {
+    return window.MoveSyncSessionStore || null;
+  }
+
+  async function hydrate() {
+    try {
+      await store()?.hydrateRuntimeFromDb?.();
+    } catch (e) {
+      console.warn("[Dashboard] hydrateRuntimeFromDb failed:", e);
+    }
+  }
+
+  function getProjectsSafe() {
+    const s = store();
+    const projects = s?.getProjects?.();
+    return Array.isArray(projects) ? projects : [];
+  }
+
+  function collectSessionsAcrossProjects(projects) {
+    const rows = [];
+
+    for (const p of projects) {
+      const sessions = Array.isArray(p?.sessions) ? p.sessions : [];
+      for (const sess of sessions) {
+        rows.push({
+          projectId: p?.id,
+          projectName: p?.name || "Untitled project",
+          sessionId: sess?.id,
+          sessionName: sess?.name || "Untitled session",
+          when:
+            sess?.updatedAt ||
+            sess?.createdAt ||
+            p?.updatedAt ||
+            p?.createdAt ||
+            "",
+        });
+      }
+    }
+
+    // newest first
+    rows.sort((a, b) => (Date.parse(b.when) || 0) - (Date.parse(a.when) || 0));
+    return rows;
+  }
+
+  function estimateLocalStorageUsageKB() {
+    let bytes = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      const v = localStorage.getItem(k) || "";
+      bytes += (k.length + v.length) * 2; // UTF-16 approx
+    }
+    return Math.max(1, Math.round(bytes / 1024));
+  }
+
+  function renderRecents(recentRows) {
+    const root = $("dashRecents");
+    if (!root) return;
+
+    if (!recentRows.length) {
+      return; // keep empty-state markup in HTML
+    }
+
+    const top = recentRows.slice(0, 5);
+
+    root.innerHTML = top
+      .map((r) => {
+        const when = r.when ? new Date(r.when) : null;
+        const whenTxt =
+          when && !isNaN(when.getTime())
+            ? `${formatDate(when)} · ${formatTime(when)}`
+            : "No date";
+
+        const title = `${r.sessionName}`;
+        const meta = `${r.projectName}  ·  ${whenTxt}`;
+
+        return `
+          <div class="dash-recent"
+               data-open-viewer="true"
+               data-project-id="${escapeHtml(String(r.projectId ?? ""))}"
+               data-session-id="${escapeHtml(String(r.sessionId ?? ""))}">
+            <div>
+              <div class="dash-recentTitle">${escapeHtml(title)}</div>
+              <div class="dash-recentMeta">${escapeHtml(meta)}</div>
+            </div>
+            <div class="dash-pill">session</div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  function computeLastActivity(projects, recentRows) {
+    // Prefer explicit "movesync:last-activity" if present
+    const explicit = localStorage.getItem(LAST_ACTIVITY_KEY);
+    if (explicit) {
+      const d = new Date(explicit);
+      if (!isNaN(d.getTime())) return d;
+    }
+
+    // Otherwise use newest session date if any
+    const newestRow = recentRows[0];
+    if (newestRow?.when) {
+      const d = new Date(newestRow.when);
+      if (!isNaN(d.getTime())) return d;
+    }
+
+    // Otherwise use newest project updatedAt/createdAt
+    let best = null;
+    for (const p of projects) {
+      const iso = p?.updatedAt || p?.createdAt || "";
+      const t = Date.parse(iso) || 0;
+      if (!t) continue;
+      if (!best || t > best.getTime()) best = new Date(t);
+    }
+    if (best) return best;
+
+    // Finally, fallback to last-visit
+    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+    if (lastVisit) {
+      const d = new Date(lastVisit);
+      if (!isNaN(d.getTime())) return d;
+    }
+
+    return null;
+  }
+
   function wireNavButtons(controller) {
     const buttons = Array.from(document.querySelectorAll("[data-goto]"));
-
     buttons.forEach((btn) => {
       const onClick = () => {
         const page = btn.getAttribute("data-goto");
@@ -170,46 +179,64 @@
       btn.addEventListener("click", onClick, { signal: controller.signal });
     });
 
-    // Clicking a recent item -> open Session Viewer (generic for now)
+    // Clicking a recent item -> set active session (project+session) then open viewer
     const recentsRoot = $("dashRecents");
-    if (recentsRoot) {
-      recentsRoot.addEventListener(
-        "click",
-        (e) => {
-          const card = e.target.closest?.("[data-open-viewer='true']");
-          if (!card) return;
+    recentsRoot?.addEventListener(
+      "click",
+      (e) => {
+        const card = e.target.closest?.("[data-open-viewer='true']");
+        if (!card) return;
+
+        const projectId = card.getAttribute("data-project-id");
+        const sessionId = card.getAttribute("data-session-id");
+        if (!projectId || !sessionId) {
           window.MoveSync?.goToPage?.("Session Viewer");
-        },
-        { signal: controller.signal }
-      );
-    }
+          return;
+        }
+
+        try {
+          store()?.setActiveSession?.(projectId, sessionId);
+        } catch (err) {
+          console.warn("[Dashboard] setActiveSession failed:", err);
+        }
+
+        window.MoveSync?.goToPage?.("Session Viewer");
+      },
+      { signal: controller.signal }
+    );
   }
 
-  function setText(id, value) {
-    const el = $(id);
-    if (el) el.textContent = value;
-  }
+  async function initDashboard() {
+    await hydrate();
 
-  function initDashboard() {
     // Header date/time
     const now = new Date();
     setText("dashDate", `${formatDate(now)} · ${formatTime(now)}`);
 
-    // Sessions + recents panel
-    const { sessions } = loadSessionsFromStorage();
-    setText("kpiSessions", sessions.length ? String(sessions.length) : "0");
-    setText("kpiSessionsMeta", sessions.length ? "Ready to view & compare" : "Upload to get started");
+    const projects = getProjectsSafe();
+    const recentRows = collectSessionsAcrossProjects(projects);
 
-    renderRecents(sessions);
+    const projectCount = projects.length;
+    const sessionCount = recentRows.length;
 
-    // Last visit (fallback if no explicit last-activity exists)
-    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
-    if (lastVisit) {
-      const d = new Date(lastVisit);
-      if (!isNaN(d.getTime())) {
-        setText("kpiLastActivity", formatDate(d));
-        setText("kpiLastActivityMeta", `Last visit at ${formatTime(d)}`);
-      }
+    setText("kpiProjects", String(projectCount));
+    setText(
+      "kpiProjectsMeta",
+      projectCount ? "Organize sessions by project" : "Create or import a project"
+    );
+
+    setText("kpiSessions", String(sessionCount));
+    setText(
+      "kpiSessionsMeta",
+      sessionCount ? "Ready to view & compare" : "Upload to get started"
+    );
+
+    renderRecents(recentRows);
+
+    const last = computeLastActivity(projects, recentRows);
+    if (last) {
+      setText("kpiLastActivity", formatDate(last));
+      setText("kpiLastActivityMeta", `at ${formatTime(last)}`);
     } else {
       setText("kpiLastActivity", "—");
       setText("kpiLastActivityMeta", "No activity recorded yet");
@@ -217,16 +244,6 @@
 
     // Update last-visit now
     localStorage.setItem(LAST_VISIT_KEY, now.toISOString());
-
-    // If other pages write "movesync:last-activity", show that instead
-    const lastAct = localStorage.getItem(LAST_ACTIVITY_KEY);
-    if (lastAct) {
-      const d = new Date(lastAct);
-      if (!isNaN(d.getTime())) {
-        setText("kpiLastActivity", formatDate(d));
-        setText("kpiLastActivityMeta", `Last activity at ${formatTime(d)}`);
-      }
-    }
 
     // Local storage KPI
     setText("kpiStorage", `${estimateLocalStorageUsageKB()} KB`);
@@ -238,12 +255,18 @@
     _controller: null,
 
     init() {
-      // Abort previous listeners if re-entering the page
       this._controller?.abort?.();
       this._controller = new AbortController();
 
       initDashboard();
       wireNavButtons(this._controller);
+
+      // Keep dashboard live if projects change elsewhere
+      document.addEventListener(
+        "movesync:projects-changed",
+        () => initDashboard(),
+        { signal: this._controller.signal }
+      );
     },
 
     destroy() {

@@ -125,7 +125,8 @@
   }
 
   function create({ getActiveSession, getVideoEl } = {}) {
-    let editingId = null;
+    let editingId  = null;
+    let _processed = null;  // set by onProcessed() when IMU data loads
 
     function setEditingMode(isEditing) {
       const addBtn = $("viewerTsAddBtn");
@@ -253,6 +254,25 @@
                 </div>
                 ${notes ? `<div class="viewer-tsNotes">${notes}</div>` : ``}
               </div>
+
+              ${_processed && Number.isFinite(it.t) ? (() => {
+                const session = typeof getActiveSession === "function" ? getActiveSession() : null;
+                const wb = Number.isFinite(session?.windowBefore) ? session.windowBefore : 5;
+                const wa = Number.isFinite(session?.windowAfter)  ? session.windowAfter  : 3;
+                const tStart = it.t - wb;
+                const tEnd   = it.t + wa;
+                const wm = window.MoveSyncIMUProcessing?.getWindowMetrics?.(_processed, tStart, tEnd);
+                if (!wm) return "";
+                const fmt = (v, dp) => (v != null && isFinite(v)) ? Number(v).toFixed(dp) : "—";
+                return `<div class="viewer-ts-metrics">
+                  <span class="viewer-ts-metric"><span class="viewer-ts-metric-label">Δt</span><span class="viewer-ts-metric-val">${fmt(wm.duration,1)} s</span></span>
+                  <span class="viewer-ts-metric"><span class="viewer-ts-metric-label">Peak accel</span><span class="viewer-ts-metric-val">${fmt(wm.peakAccel,2)} G</span></span>
+                  <span class="viewer-ts-metric"><span class="viewer-ts-metric-label">Peak speed</span><span class="viewer-ts-metric-val">${fmt(wm.peakSpeed,2)} m/s</span></span>
+                  <span class="viewer-ts-metric"><span class="viewer-ts-metric-label">Distance</span><span class="viewer-ts-metric-val">${fmt(wm.distanceTravelled,2)} m</span></span>
+                  <span class="viewer-ts-metric"><span class="viewer-ts-metric-label">Peak gyro</span><span class="viewer-ts-metric-val">${fmt(wm.peakGyro,0)} °/s</span></span>
+                  <span class="viewer-ts-metric"><span class="viewer-ts-metric-label">Window</span><span class="viewer-ts-metric-val">−${wb}s / +${wa}s</span></span>
+                </div>`;
+              })() : ""}
 
               <div class="viewer-tsActions">
                 <button class="viewer-tsIconBtn" type="button" data-action="edit">
@@ -516,7 +536,15 @@
       setEditingMode(false);
     }
 
-    return { render, wire, updateNow };
+    // Called by session-viewer when IMU data finishes processing.
+    // Stores the ProcessedSession and re-renders timestamps so each card
+    // can show window metrics.
+    function onProcessed(processed) {
+      _processed = processed || null;
+      render();
+    }
+
+    return { render, wire, updateNow, onProcessed };
   }
 
   window.MoveSyncViewerTimestamps = { create };

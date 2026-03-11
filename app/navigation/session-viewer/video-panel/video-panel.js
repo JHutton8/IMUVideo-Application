@@ -52,6 +52,7 @@
     })();
 
   const $ = (id) => document.getElementById(id);
+  const DEFAULT_FRAME_RATE = 30;
 
   function clamp(n, a, b) {
     const v = Number(n);
@@ -117,6 +118,14 @@
         <div class="viewer-vcTop">
           <button class="viewer-vcBtn" id="viewerVcPlay" type="button" aria-label="Play">
             <i class="bx bx-play" aria-hidden="true"></i>
+          </button>
+
+          <button class="viewer-vcBtn" id="viewerVcPrevFrame" type="button" aria-label="Previous frame" title="Previous frame">
+            <i class="bx bx-skip-previous" aria-hidden="true"></i>
+          </button>
+
+          <button class="viewer-vcBtn" id="viewerVcNextFrame" type="button" aria-label="Next frame" title="Next frame">
+            <i class="bx bx-skip-next" aria-hidden="true"></i>
           </button>
 
           <button class="viewer-vcBtn" id="viewerVcRepeat" type="button" aria-label="Repeat" aria-pressed="false">
@@ -241,6 +250,84 @@
     let currentVideoUrl = null;
     let controller = null;
     let poseOverlay = null;
+    let estimatedFrameRate = DEFAULT_FRAME_RATE;
+    let frameTrackerId = null;
+    let lastFrameMeta = null;
+
+    function cancelFrameTracker() {
+      const v = $("viewerVideo");
+      if (v && typeof v.cancelVideoFrameCallback === "function" && frameTrackerId != null) {
+        try { v.cancelVideoFrameCallback(frameTrackerId); } catch {}
+      }
+      frameTrackerId = null;
+      lastFrameMeta = null;
+    }
+
+    function scheduleFrameTracker() {
+      const v = $("viewerVideo");
+      if (!v || typeof v.requestVideoFrameCallback !== "function") return;
+
+      const tick = (_now, meta = {}) => {
+        frameTrackerId = null;
+
+        const mediaTime = Number(meta.mediaTime);
+        const presentedFrames = Number(meta.presentedFrames);
+
+        if (
+          lastFrameMeta &&
+          Number.isFinite(mediaTime) &&
+          Number.isFinite(presentedFrames) &&
+          Number.isFinite(lastFrameMeta.mediaTime) &&
+          Number.isFinite(lastFrameMeta.presentedFrames)
+        ) {
+          const dt = mediaTime - lastFrameMeta.mediaTime;
+          const df = presentedFrames - lastFrameMeta.presentedFrames;
+
+          if (dt > 0 && df > 0) {
+            const fps = df / dt;
+            if (Number.isFinite(fps) && fps >= 1 && fps <= 240) {
+              estimatedFrameRate = estimatedFrameRate * 0.7 + fps * 0.3;
+            }
+          }
+        }
+
+        lastFrameMeta = { mediaTime, presentedFrames };
+        if (!controller?.signal?.aborted) {
+          frameTrackerId = v.requestVideoFrameCallback(tick);
+        }
+      };
+
+      frameTrackerId = v.requestVideoFrameCallback(tick);
+    }
+
+    function getFrameDuration() {
+      const fps = Number(estimatedFrameRate);
+      return Number.isFinite(fps) && fps > 0 ? 1 / fps : 1 / DEFAULT_FRAME_RATE;
+    }
+
+    function stepFrame(direction) {
+      const v = $("viewerVideo");
+      if (!v || !Number.isFinite(v.duration)) return;
+
+      const dir = direction < 0 ? -1 : 1;
+      const frameDuration = getFrameDuration();
+      const epsilon = Math.min(frameDuration * 0.25, 0.001);
+
+      try { v.pause?.(); } catch {}
+
+      const baseTime = Number.isFinite(v.currentTime) ? v.currentTime : 0;
+      const rawTarget =
+        dir < 0
+          ? baseTime - frameDuration - epsilon
+          : baseTime + frameDuration + epsilon;
+
+      v.currentTime = clamp(rawTarget, 0, v.duration);
+
+      try {
+        v.dispatchEvent(new Event("pause"));
+        v.dispatchEvent(new Event("timeupdate"));
+      } catch {}
+    }
 
     function showVideoEmpty(show) {
       const empty = $("viewerVideoEmpty");
@@ -272,31 +359,31 @@
     function resetControlsUI({ rewind = true } = {}) {
       const v = $("viewerVideo");
       if (v) {
-        // Always normalize state on page entry
         try { v.pause?.(); } catch {}
         try { v.playbackRate = 1; } catch {}
         try { v.muted = false; } catch {}
         try { v.volume = 1; } catch {}
         try { v.loop = false; } catch {}
-
         if (rewind) {
           try { v.currentTime = 0; } catch {}
         }
       }
 
-      // Play icon
       const playBtn = $("viewerVcPlay");
       const icon = playBtn?.querySelector("i");
       if (icon) icon.className = "bx bx-play";
 
-      // Repeat visual reset (OFF by default)
+      const prevFrameBtn = $("viewerVcPrevFrame");
+      const nextFrameBtn = $("viewerVcNextFrame");
+      if (prevFrameBtn) prevFrameBtn.disabled = false;
+      if (nextFrameBtn) nextFrameBtn.disabled = false;
+
       const repeatBtn = $("viewerVcRepeat");
       if (repeatBtn) {
         repeatBtn.classList.remove("is-active-repeat");
         repeatBtn.setAttribute("aria-pressed", "false");
       }
 
-      // Movement visual reset (OFF by default)
       const startBtn = $("viewerPoseStart");
       if (startBtn) {
         startBtn.classList.remove("is-active-movement");
@@ -308,42 +395,34 @@
         stopBtn.setAttribute("aria-pressed", "false");
       }
 
-      // Seek slider
       const slider = $("viewerVcSeek");
       if (slider) {
         slider.value = "0";
         slider.max = "1";
       }
 
-      // Times
       const timeCur = $("viewerVcTime");
       const timeDur = $("viewerVcDur");
       if (timeCur) timeCur.textContent = "0:00";
       if (timeDur) timeDur.textContent = "0:00";
 
-      // Speed pills -> 1× active
       document.querySelectorAll(".viewer-vcPill").forEach((p) => {
         const r = Number(p.dataset.rate);
         p.classList.toggle("is-active", Number.isFinite(r) && r === 1);
       });
 
-      // Mute icon
       const muteBtn = $("viewerVcMute");
       const muteIcon = muteBtn?.querySelector("i");
       if (muteIcon) muteIcon.className = "bx bx-volume-full";
 
-      // Volume slider
       const vol = $("viewerVcVol");
       if (vol) vol.value = "1";
 
-      // Hint/status
       const hint = $("viewerVcHint");
       if (hint) hint.textContent = "";
 
-      // Seek marker hidden
       $("viewerVcSeekMarker")?.setAttribute("hidden", "");
 
-      // Info popover closed + unpinned
       const infoBtn = $("viewerVideoInfoBtn");
       const pop = $("viewerVideoMetaPopover");
       if (pop) pop.hidden = true;
@@ -352,7 +431,6 @@
         infoBtn.setAttribute("aria-expanded", "false");
       }
 
-      // Joint analysis UI hidden + reset if possible
       $("viewerJointAnalysis")?.setAttribute("hidden", "");
       try { window.resetJointAnalysis?.(); } catch {}
       const listEl = $("viewerSelectedJointsList");
@@ -367,7 +445,12 @@
       const v = $("viewerVideo");
       if (!v) return;
 
+      cancelFrameTracker();
+      scheduleFrameTracker();
+
       const playBtn = $("viewerVcPlay");
+      const prevFrameBtn = $("viewerVcPrevFrame");
+      const nextFrameBtn = $("viewerVcNextFrame");
       const slider = $("viewerVcSeek");
       const timeCur = $("viewerVcTime");
       const timeDur = $("viewerVcDur");
@@ -393,16 +476,13 @@
       repeatBtn?.addEventListener(
         "click",
         () => {
-          v.loop = !v.loop; // repeats forever when true
-
-          // ✅ green when ON (requires CSS for .is-active-repeat)
+          v.loop = !v.loop;
           repeatBtn.classList.toggle("is-active-repeat", v.loop);
           repeatBtn.setAttribute("aria-pressed", v.loop ? "true" : "false");
         },
         { signal }
       );
 
-      // Fullscreen toggle
       const fsBtn = $("viewerVcFs");
       const wrap = $("viewerVideoWrap");
       fsBtn?.addEventListener(
@@ -430,6 +510,18 @@
         { signal }
       );
 
+      prevFrameBtn?.addEventListener(
+        "click",
+        () => stepFrame(-1),
+        { signal }
+      );
+
+      nextFrameBtn?.addEventListener(
+        "click",
+        () => stepFrame(1),
+        { signal }
+      );
+
       slider?.addEventListener(
         "input",
         () => {
@@ -439,7 +531,6 @@
         { signal }
       );
 
-      // Mute + Volume
       const muteBtn = $("viewerVcMute");
       const vol = $("viewerVcVol");
 
@@ -468,6 +559,17 @@
       );
 
       const refresh = () => {
+        const hasVideo = Number.isFinite(v.duration) && v.duration > 0;
+        const atStart = !hasVideo || (Number(v.currentTime) || 0) <= 0;
+        const atEnd = !hasVideo || (
+          Number.isFinite(v.currentTime) &&
+          Number.isFinite(v.duration) &&
+          v.currentTime >= Math.max(0, v.duration - getFrameDuration() * 0.5)
+        );
+
+        if (prevFrameBtn) prevFrameBtn.disabled = atStart;
+        if (nextFrameBtn) nextFrameBtn.disabled = atEnd;
+
         if (slider) {
           slider.max = Number.isFinite(v.duration) ? String(v.duration) : "1";
           slider.value = Number.isFinite(v.currentTime) ? String(v.currentTime) : "0";
@@ -487,7 +589,6 @@
         if (muteIcon) muteIcon.className = v.muted ? "bx bx-volume-mute" : "bx bx-volume-full";
         if (vol && Number.isFinite(v.volume)) vol.value = String(v.volume);
 
-        // Keep repeat button UI synced with actual loop state
         if (repeatBtn) {
           repeatBtn.classList.toggle("is-active-repeat", !!v.loop);
           repeatBtn.setAttribute("aria-pressed", v.loop ? "true" : "false");
@@ -496,9 +597,14 @@
 
       v.addEventListener("timeupdate", refresh, { signal });
       v.addEventListener("loadedmetadata", refresh, { signal });
+      v.addEventListener("loadeddata", refresh, { signal });
       v.addEventListener("play", refresh, { signal });
       v.addEventListener("pause", refresh, { signal });
+      v.addEventListener("seeked", refresh, { signal });
+      v.addEventListener("ended", refresh, { signal });
       v.addEventListener("volumechange", refresh, { signal });
+
+      signal?.addEventListener?.("abort", () => cancelFrameTracker(), { once: true });
 
       refresh();
     }
@@ -565,6 +671,8 @@
       mountEl.innerHTML = getMarkup();
     }
 
+    // ✅ CRITICAL FIX:
+    // Wait for video-panel deps (pose-overlay.js) before creating/wiring poseOverlay.
     function init(signal) {
       if (!$("viewerVideo")) {
         mount();
@@ -574,40 +682,53 @@
       controller = new AbortController();
 
       if (signal) {
-        signal.addEventListener(
-          "abort",
-          () => controller?.abort?.(),
-          { once: true }
-        );
+        signal.addEventListener("abort", () => controller?.abort?.(), { once: true });
       }
 
       wireVideoControls(controller.signal);
       wireInfoPopover(controller.signal);
 
-      // Pose overlay wiring (does NOT auto-load MoveNet; only loads on Start click)
-      poseOverlay = window.MoveSyncViewerPoseOverlay?.create?.({
-        getVideoEl: () => $("viewerVideo"),
-        canvasId,
+      // Keep pose buttons disabled until overlay module is ready
+      const startBtn = $("viewerPoseStart");
+      const stopBtn = $("viewerPoseStop");
+      if (startBtn) startBtn.disabled = true;
+      if (stopBtn) stopBtn.disabled = true;
 
-        // When movement starts/stops, color the Start/Stop buttons
-        onPoseStateChanged: ({ running }) => {
-          const startBtn = $("viewerPoseStart");
-          const stopBtn = $("viewerPoseStop");
+      // Load deps, then wire pose overlay
+      Promise.resolve(window.__videoPanelDepsPromise)
+        .then(() => {
+          if (controller.signal.aborted) return;
 
-          // Start button blue when running
-          if (startBtn) {
-            startBtn.classList.toggle("is-active-movement", !!running);
-            startBtn.setAttribute("aria-pressed", running ? "true" : "false");
-          }
+          poseOverlay = window.MoveSyncViewerPoseOverlay?.create?.({
+            getVideoEl: () => $("viewerVideo"),
+            canvasId,
 
-          // Stop button red when running
-          if (stopBtn) {
-            stopBtn.classList.toggle("is-active-stop", !!running);
-            stopBtn.setAttribute("aria-pressed", running ? "true" : "false");
-          }
-        },
-      });
-      poseOverlay?.init?.(controller.signal);
+            onPoseStateChanged: ({ running }) => {
+              const startBtn = $("viewerPoseStart");
+              const stopBtn = $("viewerPoseStop");
+
+              if (startBtn) {
+                startBtn.classList.toggle("is-active-movement", !!running);
+                startBtn.setAttribute("aria-pressed", running ? "true" : "false");
+              }
+
+              if (stopBtn) {
+                stopBtn.classList.toggle("is-active-stop", !!running);
+                stopBtn.setAttribute("aria-pressed", running ? "true" : "false");
+              }
+            },
+          });
+
+          poseOverlay?.init?.(controller.signal);
+
+          // If overlay module is now ready, it will enable Start appropriately
+          // (pose-overlay.js enables Start only when video/canvas exist)
+        })
+        .catch((e) => {
+          console.warn("[Video Panel] pose-overlay deps failed:", e);
+          const hint = $("viewerVcHint");
+          if (hint) hint.textContent = "Pose overlay failed to load. See console.";
+        });
 
       // Empty state events
       const videoEl = $("viewerVideo");
@@ -620,7 +741,6 @@
     }
 
     function renderSession(session) {
-      // Always stop pose + clear overlay when a session is rendered
       resetUI({ rewind: true, stopPose: true, keepSrc: false });
 
       clearVideo();
@@ -633,12 +753,12 @@
         videoEl.src = currentVideoUrl;
         videoEl.load();
 
-        // ✅ On load: force start at 0, paused, 1×
         const onMeta = () => {
           try { videoEl.pause?.(); } catch {}
           try { videoEl.playbackRate = 1; } catch {}
           try { videoEl.currentTime = 0; } catch {}
-          // ensure UI updates
+          cancelFrameTracker();
+          scheduleFrameTracker();
           videoEl.dispatchEvent(new Event("pause"));
           videoEl.dispatchEvent(new Event("timeupdate"));
         };
@@ -659,11 +779,11 @@
       setVideoControlsVisible(false, "Select a session with a video to enable playback.");
     }
 
-    // Public: full reset callable by the page on entry
     function resetUI({ rewind = true, stopPose = true, keepSrc = true } = {}) {
       const v = $("viewerVideo");
+      estimatedFrameRate = DEFAULT_FRAME_RATE;
+      cancelFrameTracker();
 
-      // Stop tracking WITHOUT initializing MoveNet
       if (stopPose) {
         try { poseOverlay?.reset?.(); } catch {}
         try {
@@ -672,13 +792,9 @@
         } catch {}
       }
 
-      // Clear overlay canvas regardless
       try { poseOverlay?.clearPoseCanvas?.(); } catch {}
-
-      // Reset joints (if present)
       try { window.resetJointAnalysis?.(); } catch {}
 
-      // Reset video state
       if (v) {
         try { v.pause?.(); } catch {}
         try { v.playbackRate = 1; } catch {}
@@ -689,20 +805,18 @@
           try { v.currentTime = 0; } catch {}
         }
         if (!keepSrc) {
-          // caller wants to fully detach the source
-          // (renderSession/renderNoSession will set up again)
+          // caller wants to fully detach the source (handled by renderSession/renderNoSession)
         }
       }
 
-      // Reset UI widgets
       resetControlsUI({ rewind });
     }
 
     function destroy() {
       controller?.abort?.();
       controller = null;
+      cancelFrameTracker();
 
-      // Ensure pose/video is stopped when leaving
       try { resetUI({ rewind: true, stopPose: true }); } catch {}
 
       poseOverlay = null;
@@ -719,7 +833,7 @@
       renderSession,
       renderNoSession,
       clearVideo,
-      resetUI, // ✅ exposed
+      resetUI,
     };
   }
 

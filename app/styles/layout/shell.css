@@ -1,0 +1,44 @@
+/* app/styles/layout/shell.css
+   ------------------------------------------------------------
+   Shell geometry only:
+   - .home is a fixed viewport region under the sidebar offset
+   - .home does NOT scroll
+   - #pageRoot is the ONLY scrolling container
+   ------------------------------------------------------------ */
+
+:root{
+  --sidebar-expanded-width: 250px;
+  --sidebar-collapsed-width: 88px;
+  --sidebar-width: var(--sidebar-expanded-width);
+}
+
+body.sidebar-collapsed{
+  --sidebar-width: var(--sidebar-collapsed-width);
+}
+
+.home{
+  position: relative;
+  left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  background: transparent;
+  transition: var(--tran-05);
+  z-index: 1;
+
+  /* ✅ IMPORTANT: stop scrolling here */
+  overflow: hidden;
+}
+
+/* Responsive (shell) */
+@media (max-width: 768px){
+  .home{
+    left: 0;
+    width: 100%;
+  }
+}

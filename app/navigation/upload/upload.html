@@ -4,23 +4,65 @@
     <div class="uw-header-left">
       <h2 class="uw-title">Upload</h2>
       <p class="uw-subtitle">
-        Upload video and/or IMU CSV data, add session details, then save.
+        Build a <b>project</b> with one or more <b>sessions</b>. Each session can contain a video and multiple IMU CSVs.
       </p>
+    </div>
+
+    <div class="uw-header-right" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-ghost" id="importProjectBtn" type="button" title="Import a project JSON (structure only)">
+        <i class="bx bx-import" aria-hidden="true"></i>
+        Import project
+      </button>
+
+      <button class="btn btn-ghost" id="exportDraftBtn" type="button" title="Export current project draft as JSON">
+        <i class="bx bx-export" aria-hidden="true"></i>
+        Export draft
+      </button>
+
+      <input id="importProjectInput" type="file" accept="application/json,.json" hidden />
     </div>
   </header>
 
-  <!-- NEW: Two-column layout (main + sticky session card) -->
+  <!-- Layout (main + sticky project card) -->
   <div class="uw-layout uw-layout-single">
     <!-- Main content -->
     <main class="uw-stage" aria-live="polite">
       <section class="uw-panel uw-panel-always" id="panelUploadSingle" data-active="true" aria-hidden="false">
         <div class="uw-panel-head">
           <div>
-            <div class="uw-kicker">Upload</div>
-            <h3 class="uw-panel-title">Upload your data</h3>
+            <div class="uw-kicker">Session draft</div>
+            <h3 class="uw-panel-title">Next session</h3>
             <p class="uw-panel-subtitle">
-              Upload a video, IMU CSV sensors, or both — then save the session.
+              Add a video, IMUs, or both. Then click <b>Add session</b> to append it to the project.
             </p>
+
+            <div class="uw-session-meta-fields" aria-label="Session metadata">
+              <label class="uw-field">
+                <span class="uw-label">Session name</span>
+                <input id="sessionName" class="uw-input" type="text" placeholder="e.g., Warm-up" />
+              </label>
+
+              <label class="uw-field uw-field-span">
+                <span class="uw-label">Session notes (optional)</span>
+                <textarea id="sessionNotes" class="uw-input uw-textarea uw-textarea-sm" rows="3" placeholder="Anything important about this session..."></textarea>
+              </label>
+
+              <div class="uw-field uw-field-span uw-preset-field">
+                <span class="uw-label">
+                  Sport preset
+                  <span class="uw-label-hint">Key metrics to highlight in the session viewer</span>
+                </span>
+                <div class="uw-preset-row">
+                  <select id="sessionPresetSelect" class="uw-input uw-preset-select">
+                    <option value="">None — no key metrics</option>
+                  </select>
+                  <div class="uw-preset-preview" id="sessionPresetPreview" hidden>
+                    <div class="uw-preset-preview-title">Key metrics for this preset</div>
+                    <div class="uw-preset-pills" id="sessionPresetPills"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -93,77 +135,88 @@
                   <div class="uw-imu-empty-desc">Click “Add sensor” to add an IMU CSV.</div>
                 </div>
               </div>
+
+              <div class="uw-imu-tabs" id="imuTabs" role="tablist" aria-label="IMU sensors tabs" hidden></div>
+              <div class="uw-imu-panel" id="imuActivePanel" hidden></div>
             </div>
           </section>
         </div>
 
-        <!-- Bottom actions -->
         <div class="uw-footer">
           <div class="uw-status">
             <div class="uw-hint" id="hintMain"></div>
             <div class="uw-msg" id="msgMain"></div>
           </div>
+
+          <div class="uw-actions">
+            <button class="btn btn-ghost" id="resetSessionBtn" type="button" title="Clears only the current session draft">
+              <i class="bx bx-refresh" aria-hidden="true"></i>
+              Reset session
+            </button>
+
+            <button class="btn btn-primary" id="addSessionBtn" type="button" disabled>
+              <i class="bx bx-plus" aria-hidden="true"></i>
+              Add session to project
+            </button>
+          </div>
         </div>
       </section>
     </main>
 
-    <!-- Sticky session card (replaces left progress rail) -->
-    <aside class="uw-session" aria-label="Session details and summary">
+    <!-- Sticky project card -->
+    <aside class="uw-session" aria-label="Project details and summary">
       <div class="uw-rail-card uw-session-card">
-        <div class="uw-rail-title">Session</div>
+        <div class="uw-rail-title">Project</div>
 
         <div class="uw-session-form">
           <label class="uw-field">
-            <span class="uw-label">Session name</span>
-            <input id="sessionName" class="uw-input" type="text" placeholder="e.g., Gait trial 01" />
+            <span class="uw-label">Project name</span>
+            <input id="projectName" class="uw-input" type="text" placeholder="e.g., Athlete A — Week 3" />
           </label>
 
           <label class="uw-field">
-            <span class="uw-label">Notes (optional)</span>
-            <textarea id="sessionNotes" class="uw-input uw-textarea" rows="6" placeholder="What should you remember?"></textarea>
+            <span class="uw-label">Project notes (optional)</span>
+            <textarea id="projectNotes" class="uw-input uw-textarea" rows="6" placeholder="Context, athlete, test setup..."></textarea>
           </label>
         </div>
 
         <div class="uw-rail-divider"></div>
 
         <div class="uw-summary-card uw-summary-card-plain">
-          <div class="uw-summary-title">Summary</div>
+          <div class="uw-summary-title">Project summary</div>
 
           <div class="uw-summary-row">
-            <span>Video</span>
-            <span id="sumVideo">None</span>
+            <span>Sessions</span>
+            <span id="sumSessions">0</span>
           </div>
 
           <div class="uw-summary-row">
-            <span>IMU sensors</span>
-            <span id="sumImu">0</span>
+            <span>Last draft</span>
+            <span id="sumDraft">—</span>
           </div>
 
           <div class="uw-summary-divider"></div>
 
           <div class="uw-summary-meta">
             <div class="uw-summary-meta-title">Ready check</div>
-            <div class="uw-summary-meta-line" id="readyCheckLine">—</div>
+            <div class="uw-summary-meta-line" id="projectReadyLine">Add at least 1 session to save the project.</div>
           </div>
         </div>
 
         <div class="uw-rail-divider"></div>
 
         <div class="uw-rail-info">
-          <div class="uw-rail-info-title">Rules</div>
-          <ul class="uw-rail-info-list">
-            <li>You must upload <b>video</b>, <b>IMU</b>, or <b>both</b>.</li>
-            <li>If you add IMU sensors, <b>every sensor must have a CSV</b>.</li>
-            <li>Sessions are stored <b>in memory</b> (lost on refresh).</li>
-          </ul>
+          <div class="uw-rail-info-title" id="sessionsInProjectTitle">Sessions in this project</div>
+          <div id="projectSessionsList" class="uw-project-sessions"></div>
+          <div id="projectSessionsEmpty" class="uw-project-sessions-empty">No sessions added yet.</div>
         </div>
 
         <div class="uw-rail-divider"></div>
 
         <div class="uw-session-actions">
-          <button class="btn btn-ghost" id="resetBtn" type="button">Reset</button>
-          <button class="btn btn-primary" id="saveSessionBtn" type="button" disabled>
-            Save session
+          <button class="btn btn-ghost" id="resetProjectBtn" type="button">Reset project</button>
+          <button class="btn btn-primary" id="saveProjectBtn" type="button" disabled>
+            Save project
           </button>
         </div>
 

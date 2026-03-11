@@ -1,16 +1,37 @@
+<!-- =========================
+     Library
+     File: app/navigation/library/library.html
+     ========================= -->
+
 <div class="lib-page">
   <header class="lib-header">
     <div>
       <h2 class="lib-title">Library</h2>
-      <p class="lib-subtitle">Your saved sessions. Click View to open in the viewer, or Delete to remove.</p>
+      <p class="lib-subtitle">
+        Your saved <b>projects</b>. Select one or more projects using the checkboxes, then click <b>Export</b>.
+        Expand to view sessions, then click <b>View</b>.
+      </p>
     </div>
 
     <div class="lib-actions">
-      <button class="btn btn-primary" id="libGoUpload" type="button">
-        <i class="bx bx-upload" aria-hidden="true"></i>
-        Upload
+      <button class="btn btn-primary" id="libNewProjectBtn" type="button">
+        <i class="bx bx-plus" aria-hidden="true"></i>
+        New project
       </button>
-      <button class="btn btn-ghost" id="libClearAll" type="button" title="Removes all sessions and stored files">
+
+      <button class="btn btn-ghost" id="libImportBtn" type="button" title="Import project JSON (export format)">
+        <i class="bx bx-import" aria-hidden="true"></i>
+        Import
+      </button>
+      <input id="libImportInput" type="file" accept="application/json,.json" hidden />
+
+      <!-- ✅ Top export: exports ALL CHECKED projects into ONE ZIP -->
+      <button class="btn btn-ghost" id="libExportBtn" type="button" title="Export selected projects" disabled>
+        <i class="bx bx-export" aria-hidden="true"></i>
+        Export selected (0)
+      </button>
+
+      <button class="btn btn-danger" id="libClearAll" type="button" title="Removes all projects and stored files">
         <i class="bx bx-trash" aria-hidden="true"></i>
         Clear all
       </button>
@@ -20,19 +41,32 @@
   <div class="lib-toolbar">
     <div class="lib-search">
       <i class="bx bx-search" aria-hidden="true"></i>
-      <input id="libSearchInput" type="text" placeholder="Search sessions..." />
+      <input id="libSearchInput" type="text" placeholder="Search projects, sessions, files..." />
     </div>
-    <div class="lib-count" id="libCount">0 sessions</div>
+
+    <div class="lib-toolbar-right">
+      <label class="lib-sort">
+        <span class="lib-sort-label">Sort</span>
+        <select id="libSortSelect">
+          <option value="date_desc">Date (newest)</option>
+          <option value="date_asc">Date (oldest)</option>
+          <option value="name_asc">Name (A–Z)</option>
+          <option value="name_desc">Name (Z–A)</option>
+          <option value="sessions_desc">Sessions (most)</option>
+          <option value="sessions_asc">Sessions (fewest)</option>
+        </select>
+      </label>
+
+      <div class="lib-count" id="libCount">0 projects</div>
+      <div class="lib-count lib-selectedCount" id="libSelectedCount" hidden>0 selected</div>
+    </div>
   </div>
 
-  <section class="lib-list" id="libList" aria-label="Session list"></section>
+  <section class="lib-list" id="libList" aria-label="Project list"></section>
 
   <div class="lib-empty" id="libEmpty" hidden>
-    <div class="lib-empty-title">No sessions yet</div>
-    <div class="lib-empty-desc">Go to Upload Session to add your first one.</div>
-    <button class="btn btn-primary" id="libEmptyUpload" type="button">
-      <i class="bx bx-upload" aria-hidden="true"></i>
-      Upload a session
-    </button>
+    <div class="lib-empty-title">No projects yet</div>
+    <div class="lib-empty-desc">Create a new project (top right) or import one to get started.</div>
+    <!-- ✅ Removed the centered "New project" button -->
   </div>
 </div>

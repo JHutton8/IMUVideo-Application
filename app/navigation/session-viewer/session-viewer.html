@@ -1,49 +1,140 @@
 <div class="viewer-page">
-  <header class="viewer-header">
-    <div>
-      <h2 class="viewer-title">Session Viewer</h2>
-      <p class="viewer-subtitle">Open a saved session to view its video and IMU data.</p>
+ <header class="viewer-header">
+  <div>
+   <h2 class="viewer-title">
+    Session Viewer
+   </h2>
+   <p class="viewer-subtitle">
+    Select a project, then a session to view its video and IMU data.
+   </p>
+  </div>
+  <div class="viewer-actions">
+   <div class="viewer-sessionPicker">
+    <span class="viewer-sessionLabel">
+     Project
+    </span>
+    <select aria-label="Select a project" class="viewer-sessionSelect" id="viewerProjectSelect">
+     <option value="">
+      Select a project&hellip;
+     </option>
+    </select>
+    <span class="viewer-sessionLabel">
+     Session
+    </span>
+    <select aria-label="Select a session" class="viewer-sessionSelect" disabled="" id="viewerSessionSelect">
+     <option value="">
+      Select a session&hellip;
+     </option>
+    </select>
+   </div>
+   <button class="btn btn-ghost" id="viewerGoLibrary" type="button">
+    <i aria-hidden="true" class="bx bx-library">
+    </i>
+    Library
+   </button>
+  </div>
+ </header>
+ <section aria-label="Viewer layout" class="viewer-grid">
+  <!-- LEFT: VIDEO PANEL -->
+  <article class="viewer-card viewer-card--video">
+   <div id="viewerVideoPanelMount">
+   </div>
+  </article>
+  <!-- RIGHT: KEY METRICS (from preset) + LIVE SPEED HUD -->
+  <article class="viewer-card viewer-card--metrics">
+   <div id="viewerKeyMetricsPanelMount"></div>
+   <!-- Live cursor speed — updated on every imu-cursor-changed event -->
+   <div class="viewer-live-speed" id="viewerLiveSpeed" hidden>
+     <div class="viewer-live-speed-label">Live speed</div>
+     <div class="viewer-live-speed-value">
+       <span id="viewerLiveSpeedVal">—</span>
+       <span class="viewer-live-speed-unit">m/s</span>
+     </div>
+     <div class="viewer-live-speed-sub" id="viewerLiveSpeedSub"></div>
+   </div>
+  </article>
+  <!-- RIGHT: TIMESTAMPS -->
+  <article class="viewer-card viewer-card--ts">
+   <div id="viewerTimestampsPanelMount">
+   </div>
+  </article>
+  <!-- RIGHT: TIME SYNC -->
+  <article class="viewer-card viewer-card--sync">
+   <div id="viewerTimeSyncPanelMount">
+   </div>
+  </article>
+  <!-- FULL WIDTH: GENERAL PANEL (TABS) -->
+  <article aria-label="General panel" class="viewer-card viewer-card--tabs">
+   <div class="viewer-tabs" id="viewerGeneralTabs">
+    <div aria-label="General panel tabs" class="viewer-tabsHeader" role="tablist">
+     <button aria-controls="viewerTabPanelAnalysis" aria-selected="true" class="viewer-tabBtn is-active" data-tab="analysis" id="viewerTabAnalysis" role="tab" type="button">
+      <i aria-hidden="true" class="bx bx-bar-chart-alt-2">
+      </i>
+      Expanded analysis
+     </button>
+     <button aria-controls="viewerTabPanelImu" aria-selected="false" class="viewer-tabBtn" data-tab="imu" id="viewerTabImu" role="tab" type="button">
+      <i aria-hidden="true" class="bx bx-pulse">
+      </i>
+      IMU graphs
+     </button>
+     <button aria-controls="viewerTabPanelFusion" aria-selected="false" class="viewer-tabBtn" data-tab="fusion" id="viewerTabFusion" role="tab" type="button">
+      <i aria-hidden="true" class="bx bx-cube">
+      </i>
+      Sensor fusion 3D
+     </button>
+     <button aria-controls="viewerTabPanelExtras" aria-selected="false" class="viewer-tabBtn" data-tab="extras" id="viewerTabExtras" role="tab" type="button">
+      <i aria-hidden="true" class="bx bx-plus-circle">
+      </i>
+      Additional features
+     </button>
     </div>
-
-    <div class="viewer-actions">
-      <div class="viewer-sessionPicker">
-        <span class="viewer-sessionLabel">Session</span>
-        <select
-          id="viewerSessionSelect"
-          class="viewer-sessionSelect"
-          aria-label="Select a session"
-        >
-          <option value="">Select a session…</option>
-        </select>
+    <div class="viewer-tabsBody">
+     <!-- Panel: Expanded analysis -->
+     <section aria-labelledby="viewerTabAnalysis" class="viewer-tabPanel" data-panel="analysis" id="viewerTabPanelAnalysis" role="tabpanel" tabindex="0">
+      <div class="viewer-tabPanelInner">
+       <div id="viewerAnalysisPanelMount">
+       </div>
+       <div class="viewer-tabPlaceholder" data-placeholder="analysis">
+        <p class="viewer-tabHint">
+         Expanded analysis content will appear here.
+        </p>
+       </div>
       </div>
-
-      <button class="btn btn-ghost" id="viewerGoLibrary" type="button">
-        <i class="bx bx-library" aria-hidden="true"></i>
-        Library
-      </button>
+     </section>
+     <!-- Panel: IMU graphs (existing mount) -->
+     <section aria-labelledby="viewerTabImu" class="viewer-tabPanel" data-panel="imu" hidden="" id="viewerTabPanelImu" role="tabpanel" tabindex="0">
+      <div class="viewer-tabPanelInner">
+       <!-- IMPORTANT: keep this ID; your IMU module mounts here -->
+       <div id="viewerImuPanelMount">
+       </div>
+      </div>
+     </section>
+     <!-- Panel: Fusion 3D -->
+     <section aria-labelledby="viewerTabFusion" class="viewer-tabPanel" data-panel="fusion" hidden="" id="viewerTabPanelFusion" role="tabpanel" tabindex="0">
+      <div class="viewer-tabPanelInner">
+       <div id="viewerFusionPanelMount">
+       </div>
+       <div class="viewer-tabPlaceholder" data-placeholder="fusion">
+        <p class="viewer-tabHint">
+         Sensor fusion 3D visualization will appear here.
+        </p>
+       </div>
+      </div>
+     </section>
+     <!-- Panel: Extras -->
+     <section aria-labelledby="viewerTabExtras" class="viewer-tabPanel" data-panel="extras" hidden="" id="viewerTabPanelExtras" role="tabpanel" tabindex="0">
+      <div class="viewer-tabPanelInner">
+       <div id="viewerExtrasPanelMount">
+       </div>
+       <div class="viewer-tabPlaceholder" data-placeholder="extras">
+        <p class="viewer-tabHint">
+         Additional features will appear here.
+        </p>
+       </div>
+      </div>
+     </section>
     </div>
-  </header>
-
-  <section class="viewer-grid" aria-label="Viewer layout">
-    <!-- LEFT: VIDEO PANEL -->
-    <article class="viewer-card viewer-card--video">
-      <div id="viewerVideoPanelMount"></div>
-    </article>
-
-    <!-- RIGHT: TIMESTAMPS -->
-    <article class="viewer-card viewer-card--ts">
-      <div id="viewerTimestampsPanelMount"></div>
-    </article>
-
-    <!-- RIGHT: TIME SYNC -->
-    <article class="viewer-card viewer-card--sync">
-      <div id="viewerTimeSyncPanelMount"></div>
-    </article>
-
-    <!-- FULL WIDTH: IMU -->
-    <article class="viewer-card viewer-card--imu">
-      <div id="viewerImuPanelMount"></div>
-    </article>
-  </section>
-  
+   </div>
+  </article>
+ </section>
 </div>

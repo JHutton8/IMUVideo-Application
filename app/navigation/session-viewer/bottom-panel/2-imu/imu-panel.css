@@ -1,0 +1,554 @@
+/* =========================
+   IMU Panel
+   File: app/navigation/session-viewer/imu-panel/imu-panel.css
+   ========================= */
+
+.viewer-imuTabs{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.viewer-tab{
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+  color: var(--text-color);
+
+  padding: 8px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: var(--tran-02);
+}
+body.dark .viewer-tab{ background: rgba(255,255,255,0.04); }
+
+.viewer-tab:hover{ transform: translateY(-1px); }
+
+.viewer-tab.is-active{
+  background: rgba(79, 179, 100, 0.18);
+  border-color: rgba(79, 179, 100, 0.38);
+}
+
+/* =========================
+   IMU plots + cursor
+   ========================= */
+
+.viewer-imuPlots{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cursor slider above the first plot */
+.viewer-cursor{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+body.dark .viewer-cursor{ background: rgba(255,255,255,0.04); }
+
+.viewer-cursorHead{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between; /* ✅ was flex-end */
+  gap: 10px;
+}
+
+.viewer-cursorTitle{
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.viewer-cursorVal{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+#viewerImuCursorVal{
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+#viewerImuCursorVal .viewer-timeUnit{
+  opacity: 0.85;
+}
+
+.viewer-cursorBody{
+  display: flex;
+  gap: 10px; /* keep in sync with .viewer-plotBody gap */
+  align-items: center;
+}
+
+/* IMPORTANT: this element’s width is set by JS to match the chart plot area */
+.viewer-cursorCol{
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- RANGE INPUT: make thumb size consistent so JS can offset precisely ---------- */
+.viewer-cursorRange{
+  /* Used by JS: thumb compensation to align thumb center with chart vertical marker */
+  --imu-range-thumb: 18px;
+  --imu-range-track: 6px;
+
+  min-width: 0;
+  width: 100%;
+  display: block;
+  accent-color: rgba(79, 179, 100, 0.95);
+
+  /* Remove browser default padding/appearance differences */
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: var(--imu-range-thumb);
+  cursor: pointer;
+}
+
+/* Track */
+.viewer-cursorRange::-webkit-slider-runnable-track{
+  height: var(--imu-range-track);
+  border-radius: 999px;
+  background: rgba(79, 179, 100, 0.25);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+body.dark .viewer-cursorRange::-webkit-slider-runnable-track{
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(79, 179, 100, 0.20);
+}
+
+.viewer-cursorRange::-moz-range-track{
+  height: var(--imu-range-track);
+  border-radius: 999px;
+  background: rgba(79, 179, 100, 0.25);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+body.dark .viewer-cursorRange::-moz-range-track{
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(79, 179, 100, 0.20);
+}
+
+/* Thumb */
+.viewer-cursorRange::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--imu-range-thumb);
+  height: var(--imu-range-thumb);
+  border-radius: 999px;
+  background: rgba(79, 179, 100, 0.95);
+  border: 2px solid rgba(0,0,0,0.18);
+  margin-top: calc((var(--imu-range-track) - var(--imu-range-thumb)) / 2); /* centers thumb on track */
+}
+body.dark .viewer-cursorRange::-webkit-slider-thumb{
+  border-color: rgba(255,255,255,0.18);
+}
+
+.viewer-cursorRange::-moz-range-thumb{
+  width: var(--imu-range-thumb);
+  height: var(--imu-range-thumb);
+  border-radius: 999px;
+  background: rgba(79, 179, 100, 0.95);
+  border: 2px solid rgba(0,0,0,0.18);
+}
+body.dark .viewer-cursorRange::-moz-range-thumb{
+  border-color: rgba(255,255,255,0.18);
+}
+/* ------------------------------------------------------------------------ */
+
+.viewer-cursorSpacer{
+  width: 44px; /* keep in sync with .viewer-axisToggles width */
+}
+
+/* Center ONLY the Mark button */
+.viewer-markBtn{
+  width: fit-content;
+  align-self: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.viewer-markBtn.is-flash{
+  box-shadow: 0 0 0 3px rgba(230, 70, 70, 0.18);
+}
+
+/* If empty message shows, it should span all columns */
+#viewerImuEmpty{ grid-column: 1 / -1; }
+
+#viewerImuEmpty.viewer-empty--light{
+  position: static;
+  inset: auto;
+  background: transparent;
+  padding: 8px 4px 0;
+  color: var(--text-color);
+}
+
+.viewer-plot{
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+}
+body.dark .viewer-plot{ background: rgba(255,255,255,0.04); }
+
+.viewer-plotHead{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.viewer-plotTitle{
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.viewer-plotSub{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.82;
+}
+
+.viewer-plotBody{
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.viewer-plotCanvasWrap{
+  margin-top: 10px;
+  height: 160px;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  display: block;
+}
+
+.viewer-plotBody .viewer-plotCanvasWrap{
+  flex: 1;
+  min-width: 0;
+}
+
+.viewer-axisToggles{
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 44px;
+}
+
+.viewer-axisBtn{
+  border: 1px solid rgba(var(--axis-rgb), 0.55);
+  background: transparent;
+  color: rgb(var(--axis-rgb));
+  border-radius: 12px;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--tran-02);
+}
+body.dark .viewer-axisBtn{ background: rgba(255,255,255,0.04); }
+.viewer-axisBtn:hover{ transform: translateY(-1px); }
+.viewer-axisBtn:active{ transform: translateY(0); opacity: 0.92; }
+
+.viewer-axisBtn:not(.is-on){ opacity: 0.55; }
+
+.viewer-axisBtn[data-axis="0"]{ --axis-rgb: 255, 82, 82; }
+.viewer-axisBtn[data-axis="1"]{ --axis-rgb: 0, 230, 118; }
+.viewer-axisBtn[data-axis="2"]{ --axis-rgb: 64, 196, 255; }
+
+.viewer-axisBtn--total{
+  border-color: rgba(255, 152, 0, 0.80);
+  color: rgb(255, 152, 0);
+}
+.viewer-axisBtn--total.is-on{ opacity: 1; }
+
+/* =========================
+   NEW: Timeframe markers (T1 / T2) overlay
+   ========================= */
+
+.viewer-timeframeOverlay{
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.viewer-timeMarker{
+  position: absolute;
+  width: 0;
+  /* top/height are set by JS to match chartArea */
+}
+
+.viewer-timeMarker::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed rgba(80, 160, 255, 0.85);
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.12));
+}
+
+.viewer-timeMarkerLabel{
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -105%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  white-space: nowrap;
+
+  background: rgba(80, 160, 255, 0.16);
+  border: 1px solid rgba(80, 160, 255, 0.38);
+  color: var(--text-color);
+}
+
+body.dark .viewer-timeMarkerLabel{
+  background: rgba(80, 160, 255, 0.22);
+  border-color: rgba(80, 160, 255, 0.50);
+}
+
+.viewer-timeMarker--t2::before{
+  border-left-color: rgba(34, 197, 94, 0.88);
+}
+
+.viewer-timeMarker--t2 .viewer-timeMarkerLabel{
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.38);
+}
+
+body.dark .viewer-timeMarker--t2 .viewer-timeMarkerLabel{
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.50);
+}
+
+/* =========================
+   CSV preview
+   ========================= */
+
+.viewer-csv{
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  min-width: 0;
+}
+
+.viewer-csv-head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.viewer-csv-file{
+  font-weight: 600;
+  color: var(--text-color);
+  word-break: break-word;
+}
+
+.viewer-csv-hint{
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.82;
+}
+
+.viewer-csv-preview{
+  margin: 10px 0 0 0;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
+
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-color);
+  white-space: pre;
+}
+body.dark .viewer-csv-preview{ background: rgba(255,255,255,0.04); }
+
+/* =========================
+   Responsive (IMU-only)
+   ========================= */
+
+@media (max-width: 600px){
+  .viewer-plotBody{ flex-direction: column; }
+  .viewer-axisToggles{
+    width: auto;
+    flex-direction: row;
+  }
+  .viewer-axisBtn{ padding: 8px 12px; }
+
+  /* Keep cursor spacer visually aligned on tiny screens */
+  .viewer-cursorSpacer{ width: 0; }
+}
+
+@media (max-width: 1000px){
+  .viewer-plotCanvasWrap{ height: 150px; }
+  .viewer-csv{ height: 360px; }
+}
+
+/* IMU Selector Tabs */
+.viewer-imu-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.viewer-imu-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  border: 1px solid var(--card-border);
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--text-color);
+
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: var(--tran-02);
+}
+
+body.dark .viewer-imu-tab {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.viewer-imu-tab:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+body.dark .viewer-imu-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.viewer-imu-tab.is-active {
+  background: rgba(79, 179, 100, 0.18);
+  border-color: rgba(79, 179, 100, 0.38);
+  color: var(--text-color);
+}
+
+body.dark .viewer-imu-tab.is-active {
+  background: rgba(79, 179, 100, 0.22);
+  border-color: rgba(79, 179, 100, 0.46);
+}
+
+.viewer-imu-tab i {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.viewer-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.viewer-section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.viewer-combined-toggle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.viewer-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+}
+
+body.dark .viewer-view-toggle {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.viewer-view-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  opacity: 0.7;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.viewer-view-tab i {
+  font-size: 16px;
+}
+
+.viewer-view-tab:hover {
+  opacity: 0.9;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.dark .viewer-view-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.viewer-view-tab.active {
+  opacity: 1;
+  background: var(--sidebar-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: rgba(79, 179, 100, 0.95);
+}
+
+body.dark .viewer-view-tab.active {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.viewer-view-container {
+  display: none;
+}
+.viewer-view-container.active {
+  display: block;
+}
