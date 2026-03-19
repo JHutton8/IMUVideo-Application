@@ -16,9 +16,10 @@
       { id: "peak_jerk",        label: "Peak jerk",              unit: "G/s",  icon: "bx-zap",             graphable: true,  source: "derived.jerk" },
     ]},
     { name: "Speed & Distance", metrics: [
-      { id: "peak_speed",       label: "Peak speed",             unit: "m/s",  icon: "bx-wind",            graphable: true,  source: "motion.speed" },
-      { id: "mean_burst_speed", label: "Avg peak speed (per burst)",  unit: "m/s",  icon: "bx-transfer",        graphable: false, source: null },
-      { id: "total_distance",   label: "Total distance",         unit: "m",    icon: "bx-run",             graphable: true,  source: "motion.totalDistance" },
+      { id: "peak_speed",       label: "Peak speed",             unit: "m/s",  icon: "bx-wind",         graphable: true,  source: "motion.speed" },
+      { id: "mean_speed",       label: "Mean speed",             unit: "m/s",  icon: "bx-transfer-alt", graphable: false, source: null },
+      { id: "mean_burst_speed", label: "Avg peak speed (per burst)",  unit: "m/s",  icon: "bx-transfer",     graphable: false, source: null },
+      { id: "total_distance",   label: "Total distance",         unit: "m",    icon: "bx-run",          graphable: true,  source: "motion.totalDistance" },
     ]},
     { name: "Angular Velocity", metrics: [
       { id: "peak_gyro",        label: "Peak angular velocity",  unit: "°/s",  icon: "bx-rotate-right",    graphable: true,  source: "derived.gyroMagnitude" },

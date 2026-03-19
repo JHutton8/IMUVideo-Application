@@ -21,36 +21,29 @@
   // ---------------------------------------
   const STORAGE_KEY = "movesync-sport-presets-v1";
 
-  // Single-IMU computable metrics only.
-  // Speed, distance, jump height and joint angles are excluded —
-  // IMU double-integration drifts too badly for general motion,
-  // and joint angles require a second sensor per joint.
-  // Speed & distance use per-burst ZUPT integration — velocity resets to zero
-  // at every confirmed-still window, so drift cannot compound across the session.
+  // Minimal, practical metric set (extend anytime)
   const METRICS = [
-    { id: "peak_accel",       label: "Peak acceleration",      unit: "G",    group: "Acceleration" },
-    { id: "mean_accel",       label: "Mean acceleration",      unit: "G",    group: "Acceleration" },
-    { id: "accel_rms",        label: "Acceleration RMS",       unit: "G",    group: "Acceleration" },
-    { id: "peak_jerk",        label: "Peak jerk",              unit: "G/s",  group: "Acceleration" },
-    { id: "peak_speed",       label: "Peak speed",             unit: "m/s",  group: "Speed & Distance" },
-    { id: "mean_burst_speed", label: "Avg peak speed (per burst)",  unit: "m/s",  group: "Speed & Distance" },
-    { id: "total_distance",   label: "Total distance",         unit: "m",    group: "Speed & Distance" },
-    { id: "peak_gyro",        label: "Peak angular velocity",  unit: "°/s",  group: "Angular Velocity" },
-    { id: "mean_gyro",        label: "Mean angular velocity",  unit: "°/s",  group: "Angular Velocity" },
-    { id: "mean_pitch",       label: "Mean pitch",             unit: "°",    group: "Orientation" },
-    { id: "mean_roll",        label: "Mean roll",              unit: "°",    group: "Orientation" },
-    { id: "pitch_range",      label: "Pitch range",            unit: "°",    group: "Orientation" },
-    { id: "roll_range",       label: "Roll range",             unit: "°",    group: "Orientation" },
-    { id: "cadence",          label: "Cadence",                unit: "spm",  group: "Rhythm & Repetitions" },
-    { id: "rep_count",        label: "Rep count",              unit: "",     group: "Rhythm & Repetitions" },
-    { id: "mean_rep_time",    label: "Mean rep time",          unit: "s",    group: "Rhythm & Repetitions" },
-    { id: "total_duration",   label: "Session duration",       unit: "s",    group: "Session" },
-    { id: "active_time",      label: "Active time",            unit: "s",    group: "Session" },
-    { id: "total_impulse",    label: "Total impulse",          unit: "G·s",  group: "Session" },
+    { id: "peak_accel",       label: "Peak acceleration" },
+    { id: "mean_accel",       label: "Mean acceleration" },
+    { id: "accel_rms",        label: "Acceleration RMS" },
+    { id: "peak_jerk",        label: "Peak jerk" },
+    { id: "peak_speed",       label: "Peak speed" },
+    { id: "mean_speed",       label: "Mean speed" },
+    { id: "mean_burst_speed", label: "Avg peak speed (per burst)" },
+    { id: "total_distance",   label: "Total distance" },
+    { id: "peak_gyro",        label: "Peak angular velocity" },
+    { id: "mean_gyro",        label: "Mean angular velocity" },
+    { id: "mean_pitch",       label: "Mean pitch" },
+    { id: "mean_roll",        label: "Mean roll" },
+    { id: "pitch_range",      label: "Pitch range" },
+    { id: "roll_range",       label: "Roll range" },
+    { id: "cadence",          label: "Cadence" },
+    { id: "rep_count",        label: "Rep count" },
+    { id: "mean_rep_time",    label: "Mean rep time" },
+    { id: "total_duration",   label: "Session duration" },
+    { id: "active_time",      label: "Active time" },
+    { id: "total_impulse",    label: "Total impulse" },
   ];
-
-  // Expose globally so upload.js and metrics panels can read it
-  window.MoveSyncMetrics = METRICS;
 
   const SENSOR_LABEL = {
     accel: "Accelerometer",
@@ -137,47 +130,36 @@
     return [
       normalizePreset({
         id: makeId(),
-        name: "Sprint / Running",
+        name: "Sprint",
         defaultSensor: "accel",
         overlayMode: "minimal",
-        metrics: ["peak_speed", "total_distance", "peak_accel", "cadence", "mean_burst_speed", "active_time"],
+        metrics: ["peak_accel", "cadence", "stride_time", "symmetry"],
         timestampTypes: ["Start", "Acceleration phase", "Top speed", "Finish"],
         windowBefore: 5,
         windowAfter: 3,
-        notes: "Speed and distance use ZUPT burst-corrected integration.",
+        notes: "Quick review of acceleration and rhythm; timestamps for phases.",
       }),
       normalizePreset({
         id: makeId(),
-        name: "Throw / Swing",
+        name: "Jump (Vertical)",
+        defaultSensor: "accel",
+        overlayMode: "analysis",
+        metrics: ["jump_height", "flight_time", "contact_time", "power_proxy"],
+        timestampTypes: ["Countermovement", "Takeoff", "Apex", "Landing"],
+        windowBefore: 5,
+        windowAfter: 3,
+        notes: "Emphasis on jump phases and contact/flight timing.",
+      }),
+      normalizePreset({
+        id: makeId(),
+        name: "Throw",
         defaultSensor: "gyro",
         overlayMode: "analysis",
-        metrics: ["peak_gyro", "mean_gyro", "peak_accel", "peak_jerk", "pitch_range", "roll_range"],
+        metrics: ["peak_gyro", "range_of_motion", "symmetry"],
         timestampTypes: ["Wind-up", "Release", "Follow-through"],
         windowBefore: 5,
         windowAfter: 3,
-        notes: "Rotational velocity and segment orientation for arm/racket/club.",
-      }),
-      normalizePreset({
-        id: makeId(),
-        name: "Weightlifting / Gym",
-        defaultSensor: "accel",
-        overlayMode: "analysis",
-        metrics: ["peak_accel", "mean_accel", "peak_speed", "total_distance", "rep_count", "mean_rep_time"],
-        timestampTypes: ["Setup", "Initiation", "Peak effort", "Recovery"],
-        windowBefore: 4,
-        windowAfter: 4,
-        notes: "Acceleration and rep cadence from bar or wrist IMU.",
-      }),
-      normalizePreset({
-        id: makeId(),
-        name: "General Motion",
-        defaultSensor: "accel",
-        overlayMode: "minimal",
-        metrics: ["peak_speed", "total_distance", "peak_accel", "peak_gyro", "total_duration"],
-        timestampTypes: ["Start", "Event", "End"],
-        windowBefore: 5,
-        windowAfter: 5,
-        notes: "Generic preset for any single-IMU recording.",
+        notes: "Emphasis on rotational speed and motion range.",
       }),
     ];
   }
@@ -256,21 +238,14 @@
     if (!grid) return;
 
     const activeMetrics = new Set(active?.metrics || []);
-    const groupOrder = [];
-    const groupMap = {};
-    for (const m of METRICS) {
-      const g = m.group || "Other";
-      if (!groupMap[g]) { groupMap[g] = []; groupOrder.push(g); }
-      groupMap[g].push(m);
-    }
-
-    grid.innerHTML = groupOrder.map(g => {
-      const items = groupMap[g].map(m => {
-        const checked = activeMetrics.has(m.id) ? "checked" : "";
-        const unit = m.unit ? `<span class="sp-metric-unit">${escapeHtml(m.unit)}</span>` : "";
-        return `<label class="sp-check"><input type="checkbox" data-metric="${escapeHtml(m.id)}" ${checked} /><span>${escapeHtml(m.label)}</span>${unit}</label>`;
-      }).join("");
-      return `<div class="sp-metric-group"><div class="sp-metric-group-label">${escapeHtml(g)}</div><div class="sp-metric-group-items">${items}</div></div>`;
+    grid.innerHTML = METRICS.map((m) => {
+      const checked = activeMetrics.has(m.id);
+      return `
+        <label class="sp-check">
+          <input type="checkbox" data-metric="${escapeHtml(m.id)}" ${checked ? "checked" : ""} />
+          <span>${escapeHtml(m.label)}</span>
+        </label>
+      `;
     }).join("");
   }
 

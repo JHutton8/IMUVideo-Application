@@ -343,6 +343,7 @@
         timestampsPanel = window.MoveSyncViewerTimestamps?.create?.({
           getActiveSession: () => getActiveSessionSafe(),
           getVideoEl: () => $("viewerVideo"),
+          getTimeSyncOffset: () => Number.isFinite(timeSync.offset) ? timeSync.offset : null,
           mountId: "viewerTimestampsPanelMount",
         });
         timestampsPanel?.wire?.(signal);

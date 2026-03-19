@@ -36,13 +36,14 @@
     // Low-pass cutoff for smoothed signals (Hz).
     // 20 Hz keeps all meaningful human motion, removes high-frequency noise.
     LP_CUTOFF_HZ: 20,
+    LP_INTEGRATION_HZ: 20,
 
     // ZUPT detection: a sample window is "still" when ALL of these hold
     // for at least ZUPT_MIN_SAMPLES consecutive samples.
-    ZUPT_GYRO_THRESHOLD_DEGS: 15,    // deg/s — gyro magnitude below this
-    ZUPT_ACCEL_MIN_G: 0.70,           // g — accel magnitude lower bound (near 1g = gravity only)
-    ZUPT_ACCEL_MAX_G: 1.35,           // g — accel magnitude upper bound
-    ZUPT_MIN_SAMPLES: 5,              // consecutive samples required to confirm stillness
+    ZUPT_GYRO_THRESHOLD_DEGS: 8,     // deg/s — gyro magnitude below this
+    ZUPT_ACCEL_MIN_G: 0.80,           // g — accel magnitude lower bound (near 1g = gravity only)
+    ZUPT_ACCEL_MAX_G: 1.20,           // g — accel magnitude upper bound
+    ZUPT_MIN_SAMPLES: 8,              // consecutive samples required to confirm stillness
 
     // Gravity constant (m/s²)
     GRAVITY_MS2: 9.80665,
@@ -228,16 +229,16 @@
       const q = quaternions[i];
       const qw = q[0], qx = q[1], qy = q[2], qz = q[3];
 
-      // Gravity vector in body frame (rotate world [0,0,1] by conjugate quaternion)
-      // This is the direction gravity appears to point from the sensor's perspective
-      const gxB = 2 * (qx * qz - qw * qy);
-      const gyB = 2 * (qw * qx + qy * qz);
-      const gzB = qw * qw - qx * qx - qy * qy + qz * qz;
+      // Gravity vector in body frame (rotate world [0,0,-1] by conjugate quaternion)
+      // Movesense outputs az ~ -9.8 at rest, so gravity is [0,0,-1] in world frame.
+      const gxB = 2 * (qw * qy - qx * qz);
+      const gyB = -2 * (qw * qx + qy * qz);
+      const gzB = -(qw * qw - qx * qx - qy * qy + qz * qz);
 
-      // Raw accel in g — subtract gravity component
-      const ax = raw.acc.x[i] - gxB;
-      const ay = raw.acc.y[i] - gyB;
-      const az = raw.acc.z[i] - gzB;
+      // Raw accel in m/s2 -- subtract gravity component (scaled to m/s2)
+      const ax = raw.acc.x[i] - gxB * G;
+      const ay = raw.acc.y[i] - gyB * G;
+      const az = raw.acc.z[i] - gzB * G;
 
       // Rotate linear accel into world frame
       // Rotate vector v by quaternion q: v' = q * v * q*
@@ -246,9 +247,9 @@
       const iz = qw * az + qx * ay - qy * ax;
       const iw = -qx * ax - qy * ay - qz * az;
 
-      lx[i] = (ix * qw + iw * (-qx) + iy * (-qz) - iz * (-qy)) * G;
-      ly[i] = (iy * qw + iw * (-qy) + iz * (-qx) - ix * (-qz)) * G;
-      lz[i] = (iz * qw + iw * (-qz) + ix * (-qy) - iy * (-qx)) * G;
+      lx[i] = (ix * qw + iw * (-qx) + iy * (-qz) - iz * (-qy));
+      ly[i] = (iy * qw + iw * (-qy) + iz * (-qx) - ix * (-qz));
+      lz[i] = (iz * qw + iw * (-qz) + ix * (-qy) - iy * (-qx));
     }
 
     return { x: lx, y: ly, z: lz };
@@ -277,11 +278,12 @@
       gyroMag[i] = Math.sqrt(gx * gx + gy * gy + gz * gz);
     }
 
-    // Accel magnitude in g
+    // Accel magnitude in g (raw data is in m/s², divide by G to normalise)
     const accMag = new Float32Array(n);
+    const G_INV = 1 / CFG.GRAVITY_MS2;
     for (let i = 0; i < n; i++) {
       const ax = raw.acc.x[i], ay = raw.acc.y[i], az = raw.acc.z[i];
-      accMag[i] = Math.sqrt(ax * ax + ay * ay + az * az);
+      accMag[i] = Math.sqrt(ax * ax + ay * ay + az * az) * G_INV;
     }
 
     // Build stillness boolean array
@@ -374,57 +376,11 @@
       totalDistance[i] = totalDistance[i-1] + Math.sqrt(ddx*ddx + ddy*ddy + ddz*ddz);
     }
 
-    // ── Burst-corrected speed / distance ──────────────────────────────
-    // Compute peak speed and distance INDEPENDENTLY for each movement burst
-    // (the non-still runs between consecutive ZUPT windows).
-    // Because velocity is reset to zero at every ZUPT, each burst's
-    // integration starts fresh — drift cannot accumulate across the session.
-    const burstPeakSpeeds = [];
-    const burstDistances  = [];
-
-    let bStart = -1;
-    for (let i = 0; i < n; i++) {
-      const enteringBurst = !confirmed[i] && (i === 0 || confirmed[i - 1]);
-      const leavingBurst  =  confirmed[i] && i > 0 && !confirmed[i - 1];
-
-      if (enteringBurst) bStart = i;
-
-      if (bStart >= 0 && (leavingBurst || i === n - 1)) {
-        const bEnd = leavingBurst ? i - 1 : i;
-        let bPeak = 0, bDist = 0;
-        for (let j = bStart; j <= bEnd; j++) {
-          const spd = speed[j];
-          if (spd > bPeak) bPeak = spd;
-          if (j > bStart) {
-            const ddx = dx[j] - dx[j-1];
-            const ddy = dy[j] - dy[j-1];
-            const ddz = dz[j] - dz[j-1];
-            bDist += Math.sqrt(ddx*ddx + ddy*ddy + ddz*ddz);
-          }
-        }
-        if (bEnd > bStart) {          // ignore single-sample bursts
-          burstPeakSpeeds.push(bPeak);
-          burstDistances.push(bDist);
-        }
-        bStart = -1;
-      }
-    }
-
-    const burstPeakSpeed = burstPeakSpeeds.length ? Math.max(...burstPeakSpeeds) : 0;
-    const burstMeanSpeed = burstPeakSpeeds.length
-      ? burstPeakSpeeds.reduce((a, b) => a + b, 0) / burstPeakSpeeds.length : 0;
-    const burstTotalDist = burstDistances.reduce((a, b) => a + b, 0);
-
     return {
       velocityX: vx, velocityY: vy, velocityZ: vz,
       displacementX: dx, displacementY: dy, displacementZ: dz,
       speed,
       totalDistance,
-      burstPeakSpeed,
-      burstMeanSpeed,
-      burstTotalDist,
-      burstPeakSpeeds,
-      burstDistances,
       zuptEvents,
       stillnessMask: confirmed,
     };
@@ -530,11 +486,8 @@
       peakLinearAccel: max(derived.linearMagnitude),          // m/s²
       peakGyro:        max(derived.gyroMagnitude),            // deg/s
       peakJerk:        maxAbs(derived.jerk),                  // g/s
-      // Speed and distance are burst-corrected (per-ZUPT-window integration).
-      // Each burst starts from zero velocity so drift cannot compound.
-      peakSpeed:       motion.burstPeakSpeed,                  // m/s
-      meanBurstSpeed:  motion.burstMeanSpeed,                   // m/s average burst peak
-      totalDistance:   motion.burstTotalDist,                   // m
+      peakSpeed:       max(motion.speed),                     // m/s
+      totalDistance:   motion.totalDistance[motion.totalDistance.length - 1] || 0, // m
       meanAccel:       mean(derived.accelMagnitude),          // g
       rollRange:       euler ? range(euler.roll)  : null,     // degrees
       pitchRange:      euler ? range(euler.pitch) : null,
@@ -561,7 +514,11 @@
       return null;
     }
 
-    const sampleRate = detectSampleRate(t);
+    // If the IMU panel synthesised timestamps it records the exact rate used.
+    // Skip detection in that case — the synthesised rate is already correct.
+    const sampleRate = (Number.isFinite(cache._synthHz) && cache._synthHz >= 1)
+      ? cache._synthHz
+      : detectSampleRate(t);
 
     // --- Build raw typed arrays from cache (which uses plain JS arrays) ---
     const raw = {
@@ -584,35 +541,6 @@
 
     const tArr = Float64Array.from(t);
 
-    // --- Accelerometer unit detection ---
-    // Compute median accel magnitude over a sample of points.
-    // At rest: G units → ~1.0,  m/s² units → ~9.81.
-    // Threshold of 3.0 cleanly separates the two.
-    // If m/s², normalise all axes to G so every downstream step
-    // (gravity removal, ZUPT detection, display) works in consistent units.
-    {
-      const _step = Math.max(1, Math.floor(n / 500));
-      const _mags = [];
-      for (let k = 0; k < n; k += _step) {
-        const ax = raw.acc.x[k], ay = raw.acc.y[k], az = raw.acc.z[k];
-        _mags.push(Math.sqrt(ax*ax + ay*ay + az*az));
-      }
-      _mags.sort((a, b) => a - b);
-      const _medMag = _mags[Math.floor(_mags.length / 2)];
-      if (_medMag > 3.0) {
-        // Data is in m/s² — convert to G
-        const INV_G = 1 / CFG.GRAVITY_MS2;
-        for (let k = 0; k < n; k++) {
-          raw.acc.x[k] *= INV_G;
-          raw.acc.y[k] *= INV_G;
-          raw.acc.z[k] *= INV_G;
-        }
-        console.info("[IMUProcessing] Accel detected as m/s² (median mag " + _medMag.toFixed(2) + ") — normalised to G.");
-      } else {
-        console.info("[IMUProcessing] Accel detected as G (median mag " + _medMag.toFixed(2) + ").");
-      }
-    }
-
     // --- Madgwick fusion --- runs exactly once per session load
     const fusionResult = runMadgwick(raw, sampleRate);
 
@@ -621,11 +549,12 @@
     // --- Euler angles ---
     const euler = fusionValid ? computeEuler(quaternions) : null;
 
-    // --- Raw accel magnitude (in g, no gravity removal) ---
+    // --- Raw accel magnitude in g (raw data is m/s², divide by G) ---
     const accelMagnitude = new Float32Array(n);
+    const _gInv = 1 / CFG.GRAVITY_MS2;
     for (let i = 0; i < n; i++) {
       const ax = raw.acc.x[i], ay = raw.acc.y[i], az = raw.acc.z[i];
-      accelMagnitude[i] = Math.sqrt(ax*ax + ay*ay + az*az);
+      accelMagnitude[i] = Math.sqrt(ax*ax + ay*ay + az*az) * _gInv;
     }
 
     // --- Gyro magnitude (deg/s) ---
@@ -647,8 +576,18 @@
       }
 
       linearMagnitudeSmooth = lowPass(linearMagnitude, sampleRate, CFG.LP_CUTOFF_HZ);
+
+      // Filter each axis at a lower cutoff before integration.
+      // Double integration squares any residual noise, so a tighter filter
+      // here dramatically reduces velocity/distance drift during movement.
+      linear = {
+        x: lowPass(linear.x, sampleRate, CFG.LP_INTEGRATION_HZ),
+        y: lowPass(linear.y, sampleRate, CFG.LP_INTEGRATION_HZ),
+        z: lowPass(linear.z, sampleRate, CFG.LP_INTEGRATION_HZ),
+      };
     } else {
-      // Fallback: use raw accel magnitude * G as rough approximation
+      // Fallback: use raw accel magnitude converted to m/s² as rough approximation
+      // accelMagnitude is now in g, so multiply by G to get m/s²
       linear = { x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n) };
       linearMagnitude = new Float32Array(n);
       for (let i = 0; i < n; i++) {
@@ -831,20 +770,7 @@
       peakSpeed:       sliceMax(m.speed, iStart, iEnd),                // m/s
       meanAccel:       sliceMean(d.accelMagnitude, iStart, iEnd),      // g
       meanSpeed:       sliceMean(m.speed, iStart, iEnd),               // m/s
-      // Distance within this window using burst-local integration
-      distanceTravelled: (() => {
-        const still = m.stillnessMask;
-        let dist = 0;
-        for (let i = iStart + 1; i <= iEnd; i++) {
-          if (!still[i] && !still[i-1]) {
-            const ddx = m.displacementX[i] - m.displacementX[i-1];
-            const ddy = m.displacementY[i] - m.displacementY[i-1];
-            const ddz = m.displacementZ[i] - m.displacementZ[i-1];
-            dist += Math.sqrt(ddx*ddx + ddy*ddy + ddz*ddz);
-          }
-        }
-        return dist;
-      })(), // m
+      distanceTravelled: m.totalDistance[iEnd] - m.totalDistance[iStart], // m
       rollRange:   e ? sliceRange(e.roll,  iStart, iEnd) : null,       // degrees
       pitchRange:  e ? sliceRange(e.pitch, iStart, iEnd) : null,
       yawRange:    e ? sliceRange(e.yaw,   iStart, iEnd) : null,

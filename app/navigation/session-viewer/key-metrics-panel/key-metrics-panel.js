@@ -12,6 +12,7 @@
     accel_rms:        { label: "Acceleration RMS",       unit: "G",    icon: "bx-pulse" },
     peak_jerk:        { label: "Peak jerk",              unit: "G/s",  icon: "bx-zap" },
     peak_speed:       { label: "Peak speed",             unit: "m/s",  icon: "bx-wind" },
+    mean_speed:       { label: "Mean speed",             unit: "m/s",  icon: "bx-transfer-alt" },
     mean_burst_speed: { label: "Avg peak speed (per burst)",  unit: "m/s",  icon: "bx-transfer" },
     total_distance:   { label: "Total distance",         unit: "m",    icon: "bx-run" },
     peak_gyro:        { label: "Peak angular velocity",  unit: "°/s",  icon: "bx-rotate-right" },
@@ -66,6 +67,13 @@
     set("peak_speed",       s.peakSpeed,       2);
     set("mean_burst_speed", s.meanBurstSpeed,  2);
     set("total_distance",   s.totalDistance,   2);
+
+    // Mean speed: average of speed array over whole session
+    if (m?.speed && n > 0) {
+      let ss = 0;
+      for (let i = 0; i < n; i++) ss += m.speed[i];
+      set("mean_speed", ss / n, 2);
+    }
 
     // Angular velocity
     set("peak_gyro", s.peakGyro, 1);

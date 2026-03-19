@@ -1,12 +1,16 @@
 // =======================================
-// MoveSync module: IMU Panel (CSV + Charts + Axis toggles + Cursor + T1/T2 markers via Chart.js plugin)
+// MoveSync module: IMU Panel (CSV + Charts + Axis toggles + Cursor)
 // File: app/navigation/session-viewer/imu-panel/imu-panel.js
 //
-// FIX (cursor slider width):
-// - Slider must match the chart plot area width, regardless of window size.
-// - The cursor value label is moved ABOVE the slider so it does not consume horizontal space.
-// - Alignment uses DOM positions (getBoundingClientRect) + Chart.js chartArea (CSS px) + thumb compensation.
-// - ResizeObserver keeps alignment correct on responsive layout changes.
+// Public API: window.MoveSyncViewerIMUPanel.create({ mountId })
+//
+// Notes:
+// - Loads plotting deps lazily (imu-filters.js, time-series-chart.js)
+// - Supports multiple IMU CSVs per session via session.imus[]
+// - Emits events:
+//    • movesync:imu-cursor-changed { imuTime }
+//    • movesync:imu-selected { index }
+//    • movesync:imu-data-ready { index, hasData }
 // =======================================
 (() => {
   "use strict";
@@ -95,6 +99,26 @@
 
       <div id="viewerImuSelector" class="viewer-imu-selector" hidden></div>
 
+      <!-- Shown only when no timestamp column is detected -->
+      <div id="viewerImuSynthBanner" class="viewer-synth-banner" hidden>
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        <span id="viewerImuSynthMsg">No timestamp column detected — Sampling Frequency set at <strong id="viewerImuSynthHz">?</strong> Hz.</span>
+        <label class="viewer-synth-label">
+          Sample rate (Hz):
+          <input
+            id="viewerImuSynthRate"
+            class="viewer-synth-input"
+            type="number"
+            min="1"
+            max="2000"
+            step="1"
+            value="100"
+            aria-label="Override sample rate"
+          />
+        </label>
+        <button class="viewer-synth-btn" id="viewerImuSynthApply" type="button">Apply</button>
+      </div>
+
       <!-- Plots panel -->
       <div id="viewerImuPlots" class="viewer-imuPlots" role="tabpanel">
         <div id="viewerImuEmpty" class="viewer-empty viewer-empty--light" hidden>
@@ -103,13 +127,7 @@
         </div>
 
         <div class="viewer-cursor" id="viewerImuCursor" hidden>
-          <!-- ✅ Value moved ABOVE slider so it doesn't reduce slider width -->
-          <div class="viewer-cursorHead">
-            <div class="viewer-cursorTitle">Cursor</div>
-            <div class="viewer-cursorVal" id="viewerImuCursorVal">0.000 s</div>
-          </div>
-
-          <div class="viewer-cursorBody" id="viewerImuCursorBody">
+          <div class="viewer-cursorBody">
             <div class="viewer-cursorCol" id="viewerImuCursorCol">
               <input
                 id="viewerImuCursorRange"
@@ -122,6 +140,8 @@
                 aria-label="IMU plot cursor"
               />
             </div>
+
+            <div class="viewer-cursorVal" id="viewerImuCursorVal">0.000 s</div>
 
             <div class="viewer-cursorSpacer" aria-hidden="true"></div>
           </div>
@@ -229,14 +249,8 @@
     el.hidden = !!hidden;
   }
 
-  // Cursor state:
-  // - fullMinX/fullMaxX: full data range
-  // - minX/maxX: current VIEW range (full or applied window)
-  const imuCursor = { x: 0, minX: 0, maxX: 0, fullMinX: 0, fullMaxX: 0 };
+  const imuCursor = { x: 0, minX: 0, maxX: 0 };
   const imuMarker = { x: null };
-
-  // Timeframe marker lines (drawn even when not applied)
-  const imuTimeframe = { t1: null, t2: null };
 
   let charts = {};
   let imuRows = [];
@@ -431,94 +445,46 @@
     if (!valEl) return;
 
     const t = (imuCursor.x || 0).toFixed(3);
+
+    // value + unit on the same line
     valEl.innerHTML = `<span class="viewer-timeVal">${t}</span><span class="viewer-timeUnit">&nbsp;s</span>`;
   }
 
   function syncImuCursorSlider() {
     const slider = $("viewerImuCursorRange");
     if (!slider) return;
-    slider.min = String(imuCursor.minX ?? 0);
-    slider.max = String(imuCursor.maxX ?? 0);
+    slider.min = String(imuCursor.minX || 0);
+    slider.max = String(imuCursor.maxX || 0);
     slider.step = "0.001";
-    slider.value = String(imuCursor.x ?? 0);
+    slider.value = String(imuCursor.x || 0);
   }
 
-  // ---- Viewport helpers (full range vs applied range) ----
-  function setFullViewportRange() {
-    const fullMin = Number.isFinite(imuCursor.fullMinX) ? imuCursor.fullMinX : 0;
-    const fullMax = Number.isFinite(imuCursor.fullMaxX) ? imuCursor.fullMaxX : 0;
-    imuCursor.minX = fullMin;
-    imuCursor.maxX = fullMax;
-  }
-
-  function applyViewportRange(start, end) {
-    const fullMin = Number.isFinite(imuCursor.fullMinX) ? imuCursor.fullMinX : 0;
-    const fullMax = Number.isFinite(imuCursor.fullMaxX) ? imuCursor.fullMaxX : 0;
-    if (!Number.isFinite(fullMax) || fullMax <= fullMin) return false;
-
-    const a = clamp(start, fullMin, fullMax);
-    const b = clamp(end, fullMin, fullMax);
-    if (!(b > a)) return false;
-
-    imuCursor.minX = a;
-    imuCursor.maxX = b;
-    return true;
-  }
-
-  function refreshCharts(mode = "none") {
-    Object.values(charts || {}).forEach((c) => c?.update?.(mode));
-  }
-
-  // Cursor setter (optionally suppress event emit)
-  function setImuCursorX(x, opts) {
-    const emit = !(opts && opts.emit === false);
-
-    imuCursor.x = clamp(Number(x) || 0, imuCursor.minX ?? 0, imuCursor.maxX ?? 0);
+  function setImuCursorX(x) {
+    imuCursor.x = clamp(Number(x) || 0, imuCursor.minX || 0, imuCursor.maxX || 0);
 
     updateImuReadouts();
     updateCursorLabel();
 
-    refreshCharts("none");
+    Object.values(charts || {}).forEach((c) => c?.update?.("none"));
     syncImuCursorSlider();
 
-    if (emit) {
-      document.dispatchEvent(new CustomEvent("movesync:imu-cursor-changed", { detail: { imuTime: imuCursor.x } }));
-    }
+    document.dispatchEvent(new CustomEvent("movesync:imu-cursor-changed", { detail: { imuTime: imuCursor.x } }));
   }
 
-  // ✅ Robust slider alignment: uses real DOM positions + Chart.js chartArea
   function alignImuCursorSliderToChartArea() {
     const col = $("viewerImuCursorCol");
-    const slider = $("viewerImuCursorRange");
-    const body = $("viewerImuCursorBody") || document.querySelector("#viewerImuCursor .viewer-cursorBody");
-    if (!col || !slider || !body) return;
+    if (!col) return;
 
     const accChart = charts?.acc?.chart;
     if (!accChart?.chartArea || !accChart?.canvas) return;
 
     const area = accChart.chartArea;
-    if (!Number.isFinite(area.left) || !Number.isFinite(area.right)) return;
-
-    const canvas = accChart.canvas;
-    const canvasRect = canvas.getBoundingClientRect();
-    const bodyRect = body.getBoundingClientRect();
-
-    // If hidden (CSV tab) or not yet laid out
-    if (!(canvasRect.width > 0) || !(bodyRect.width > 0)) return;
-
-    // Canvas pixel ratio (more reliable than window.devicePixelRatio)
-    const ratio = canvas.width / canvasRect.width || (window.devicePixelRatio || 1);
-
-    // Convert chartArea (canvas px) -> viewport CSS px
-    const leftViewport = canvasRect.left + area.left / ratio;
-    const rightViewport = canvasRect.left + area.right / ratio;
-
-    // Align the *visible slider track* exactly to the chart plot area
-    const leftCss = leftViewport - bodyRect.left;
-    const widthCss = Math.max(0, rightViewport - leftViewport);
+    const dpr = window.devicePixelRatio || 1;
+    const leftCss = area.left / dpr;
+    const rightCss = area.right / dpr;
 
     col.style.marginLeft = `${leftCss}px`;
-    col.style.width = `${widthCss}px`;
+    col.style.width = `${Math.max(0, rightCss - leftCss)}px`;
   }
 
   function wireImuCursor(signal) {
@@ -528,36 +494,7 @@
     slider.addEventListener("input", () => setImuCursorX(slider.value), { signal });
     updateCursorLabel();
 
-    // ✅ Keep alignment correct on responsive resizing using ResizeObserver
-    let ro = null;
-    const wrap = document.querySelector("#viewerChartAcc")?.closest?.(".viewer-plotCanvasWrap");
-
-    if (wrap && window.ResizeObserver) {
-      ro = new ResizeObserver(() => {
-        // Two RAFs = wait for Chart.js layout + DOM layout to settle
-        requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-      });
-      ro.observe(wrap);
-
-      signal?.addEventListener(
-        "abort",
-        () => {
-          try { ro.disconnect(); } catch {}
-        },
-        { once: true }
-      );
-    }
-
-    // Fallback: window resize (still useful if RO isn't available)
-    let raf = 0;
-    window.addEventListener(
-      "resize",
-      () => {
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-      },
-      { signal }
-    );
+    window.addEventListener("resize", () => requestAnimationFrame(alignImuCursorSliderToChartArea), { signal });
   }
 
   function axisKey(chart, axis) {
@@ -584,28 +521,21 @@
   }
 
   function wireAxisToggleButtons(signal) {
-    document.addEventListener(
-      "click",
-      (e) => {
-        const btn = e.target?.closest?.(".viewer-axisBtn[data-chart][data-axis]");
-        if (!btn) return;
+    document.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.(".viewer-axisBtn[data-chart][data-axis]");
+      if (!btn) return;
 
-        const chart = btn.dataset.chart;
-        const axis = btn.dataset.axis;
-        if (!chart || axis == null) return;
+      const chart = btn.dataset.chart;
+      const axis = btn.dataset.axis;
+      if (!chart || axis == null) return;
 
-        const key = axisKey(chart, String(axis));
-        const cur = localStorage.getItem(key) || "on";
-        localStorage.setItem(key, cur === "on" ? "off" : "on");
+      const key = axisKey(chart, String(axis));
+      const cur = localStorage.getItem(key) || "on";
+      localStorage.setItem(key, cur === "on" ? "off" : "on");
 
-        syncAllAxisButtons();
-        refreshCharts("none");
-
-        // ✅ y-axis label widths can change => chartArea.left changes => re-align
-        requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-      },
-      { signal }
-    );
+      syncAllAxisButtons();
+      Object.values(charts || {}).forEach((c) => c?.update?.());
+    }, { signal });
   }
 
   function setToggleState(rootId, activeKey, datasetKey) {
@@ -624,28 +554,17 @@
     setToggleState("viewerFormatToggle", format, "format");
     setHidden("viewerImuPlots", format !== "plots");
     setHidden("viewerImuCsv", format !== "csv");
-
-    if (format === "plots") {
-      requestAnimationFrame(() => {
-        refreshCharts("none");
-        requestAnimationFrame(alignImuCursorSliderToChartArea);
-      });
-    }
   }
 
   function wireFormatToggle(signal) {
     switchFormat("plots");
 
-    document.addEventListener(
-      "click",
-      (e) => {
-        const fmtBtn = e.target?.closest?.("#viewerFormatToggle .viewer-view-tab[data-format]");
-        if (!fmtBtn) return;
-        const fmt = fmtBtn.dataset.format;
-        if (fmt === "plots" || fmt === "csv") switchFormat(fmt);
-      },
-      { signal }
-    );
+    document.addEventListener("click", (e) => {
+      const fmtBtn = e.target?.closest?.("#viewerFormatToggle .viewer-view-tab[data-format]");
+      if (!fmtBtn) return;
+      const fmt = fmtBtn.dataset.format;
+      if (fmt === "plots" || fmt === "csv") switchFormat(fmt);
+    }, { signal });
   }
 
   function getSessionImuList(session) {
@@ -700,7 +619,8 @@
       const idx = lower.indexOf(c);
       if (idx >= 0) return idx;
     }
-    return 0;
+    // No time column found — caller must synthesize timestamps.
+    return -1;
   }
 
   function parseCsv(text) {
@@ -739,13 +659,7 @@
 
       getCursorX: () => imuCursor.x,
       getMarkerX: () => imuMarker.x,
-
-      // T1/T2 marker lines (always drawn if set)
-      getT1X: () => imuTimeframe.t1,
-      getT2X: () => imuTimeframe.t2,
-
       getAxisEnabled: (axisIdx) => getAxisEnabled(chartName, String(axisIdx)),
-
       getMinX: () => imuCursor.minX,
       getMaxX: () => imuCursor.maxX,
     });
@@ -758,8 +672,8 @@
     charts.gyro = createChart("viewerChartGyro", ["gx", "gy", "gz"], imuTimeIndex);
     charts.mag = createChart("viewerChartMag", ["mx", "my", "mz"], imuTimeIndex);
 
-    refreshCharts("none");
-    requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
+    Object.values(charts).forEach((c) => c?.update?.());
+    requestAnimationFrame(alignImuCursorSliderToChartArea);
   }
 
   function setImuEmptyState(isEmpty) {
@@ -777,16 +691,6 @@
       lastSessionForSelector = session;
       selectedImuIndex = 0;
       window.currentImuIndex = 0;
-
-      // Reset timeframe markers + viewport on session change
-      imuTimeframe.t1 = null;
-      imuTimeframe.t2 = null;
-
-      imuCursor.fullMinX = 0;
-      imuCursor.fullMaxX = 0;
-      imuCursor.minX = 0;
-      imuCursor.maxX = 0;
-      imuCursor.x = 0;
 
       document.dispatchEvent(new CustomEvent("movesync:imu-selected", { detail: { index: 0 } }));
     }
@@ -809,14 +713,12 @@
 
       imuReadoutCache = null;
       updateImuReadouts();
+      updateCursorLabel();
 
-      imuCursor.fullMinX = 0;
-      imuCursor.fullMaxX = 0;
       imuCursor.minX = 0;
       imuCursor.maxX = 0;
       imuCursor.x = 0;
 
-      updateCursorLabel();
       syncImuCursorSlider();
       setImuEmptyState(true);
       buildCharts();
@@ -830,20 +732,66 @@
     imuRows = rows;
     imuTimeIndex = findTimeIndex(headers);
 
+    // ── Synthetic timestamps ─────────────────────────────────────────────────
+    // When no time column exists we prepend one using a user-supplied (or
+    // previously stored) sample rate.  The banner lets the user correct it
+    // without re-uploading the file.
+    const synthBanner  = $("viewerImuSynthBanner");
+    const synthRateEl  = $("viewerImuSynthRate");
+    const synthHzEl    = $("viewerImuSynthHz");
+    const synthApplyEl = $("viewerImuSynthApply");
+
+    if (imuTimeIndex === -1) {
+      // Resolve rate: prefer value already shown in the input (user may have
+      // typed a custom rate), then fall back to 100 Hz.
+      const storedHz = parseFloat(synthRateEl?.value) || 100;
+      const hz = (Number.isFinite(storedHz) && storedHz >= 1) ? storedHz : 100;
+
+      // Prepend synthetic "t" column
+      imuHeaders = ["t", ...imuHeaders];
+      for (let i = 0; i < imuRows.length; i++) {
+        imuRows[i] = [String(i / hz), ...imuRows[i]];
+      }
+      imuTimeIndex = 0;
+
+      // Show banner
+      if (synthBanner)  synthBanner.hidden = false;
+      if (synthRateEl)  synthRateEl.value  = String(hz);
+      if (synthHzEl)    synthHzEl.textContent = String(hz);
+
+      // Wire "Apply" once (guard with a flag so we don't stack listeners)
+      if (synthApplyEl && !synthApplyEl.dataset.wired) {
+        synthApplyEl.dataset.wired = "1";
+        synthApplyEl.addEventListener("click", () => {
+          // Re-render with the new rate — just call renderImu again with the
+          // same session; the rate will be read from the input.
+          renderImu(lastSessionForSelector || {});
+        });
+      }
+    } else {
+      // Time column present — hide the banner
+      if (synthBanner) synthBanner.hidden = true;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const norm = normalizeTimeColumnInPlace(rows, imuTimeIndex);
 
     imuReadoutCache = buildImuReadoutCache(imuHeaders, imuRows, imuTimeIndex);
 
-    // Expose cache globally so other modules can read it
+    // If timestamps were synthesised, record the rate so imu-processing.js
+    // can skip its own detection and use the exact value instead.
+    if (imuReadoutCache) {
+      const synthRateEl = $("viewerImuSynthRate");
+      const bannerHidden = $("viewerImuSynthBanner")?.hidden !== false;
+      imuReadoutCache._synthHz = bannerHidden ? null : (parseFloat(synthRateEl?.value) || null);
+    }
+
+    // Expose globally so imu-processing.js event handler can read it.
     window.__currentImuReadoutCache = imuReadoutCache;
 
-    // Full range (data)
-    imuCursor.fullMinX = 0;
-    imuCursor.fullMaxX = norm.maxT;
-
-    // Default view is full range unless user applies a timeframe
-    setFullViewportRange();
-    imuCursor.x = imuCursor.minX;
+    imuCursor.maxX = norm.maxT;
+    imuCursor.minX = 0;
+    imuCursor.x = 0;
 
     updateImuReadouts();
     updateCursorLabel();
@@ -877,100 +825,22 @@
 
       window.__imuPanelDepsPromise?.catch(console.error);
 
-      // Listen for timeframe events from Time Sync panel
-      document.addEventListener(
-        "movesync:imu-timeframe-marked",
-        (e) => {
-          const t1 = e?.detail?.t1;
-          const t2 = e?.detail?.t2;
+      // ✅ NEW: selector click wiring via addEventListener (won’t get overwritten)
+      document.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("#viewerImuSelector .viewer-imu-tab[data-idx]");
+        if (!btn) return;
 
-          imuTimeframe.t1 = Number.isFinite(Number(t1)) ? Number(t1) : null;
-          imuTimeframe.t2 = Number.isFinite(Number(t2)) ? Number(t2) : null;
+        const idx = Number(btn.dataset.idx);
+        if (!Number.isFinite(idx)) return;
 
-          setFullViewportRange();
-          setImuCursorX(imuCursor.x, { emit: false });
+        selectedImuIndex = idx;
+        window.currentImuIndex = idx;
 
-          refreshCharts("none");
-          requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-        },
-        { signal: ac.signal }
-      );
+        document.dispatchEvent(new CustomEvent("movesync:imu-selected", { detail: { index: idx } }));
 
-      document.addEventListener(
-        "movesync:imu-timeframe-applied",
-        (e) => {
-          const startRaw = e?.detail?.start ?? e?.detail?.t1;
-          const endRaw = e?.detail?.end ?? e?.detail?.t2;
-
-          const start = Number.isFinite(Number(startRaw)) ? Number(startRaw) : null;
-          const end = Number.isFinite(Number(endRaw)) ? Number(endRaw) : null;
-
-          const t1 = e?.detail?.t1;
-          const t2 = e?.detail?.t2;
-          if (Number.isFinite(Number(t1))) imuTimeframe.t1 = Number(t1);
-          if (Number.isFinite(Number(t2))) imuTimeframe.t2 = Number(t2);
-
-          if (Number.isFinite(start) && Number.isFinite(end) && applyViewportRange(start, end)) {
-            setImuCursorX(imuCursor.x);
-          } else {
-            setFullViewportRange();
-            setImuCursorX(imuCursor.x, { emit: false });
-          }
-
-          requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-        },
-        { signal: ac.signal }
-      );
-
-      document.addEventListener(
-        "movesync:imu-timeframe-reset",
-        () => {
-          imuTimeframe.t1 = null;
-          imuTimeframe.t2 = null;
-
-          setFullViewportRange();
-          setImuCursorX(imuCursor.x, { emit: false });
-
-          refreshCharts("none");
-          requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-        },
-        { signal: ac.signal }
-      );
-
-      document.addEventListener(
-        "movesync:active-session-changed",
-        () => {
-          imuTimeframe.t1 = null;
-          imuTimeframe.t2 = null;
-
-          setFullViewportRange();
-          setImuCursorX(imuCursor.x, { emit: false });
-
-          refreshCharts("none");
-          requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea));
-        },
-        { signal: ac.signal }
-      );
-
-      // IMU selector buttons
-      document.addEventListener(
-        "click",
-        (e) => {
-          const btn = e.target?.closest?.("#viewerImuSelector .viewer-imu-tab[data-idx]");
-          if (!btn) return;
-
-          const idx = Number(btn.dataset.idx);
-          if (!Number.isFinite(idx)) return;
-
-          selectedImuIndex = idx;
-          window.currentImuIndex = idx;
-
-          document.dispatchEvent(new CustomEvent("movesync:imu-selected", { detail: { index: idx } }));
-
-          renderImu(lastSessionForSelector || {});
-        },
-        { signal: ac.signal }
-      );
+        // rerender
+        renderImu(lastSessionForSelector || {});
+      }, { signal: ac.signal });
 
       return {
         getCursorX: () => imuCursor.x,
@@ -980,24 +850,25 @@
         setMarkerX: (x) => {
           if (x == null) {
             imuMarker.x = null;
-            refreshCharts("none");
+            Object.values(charts || {}).forEach((c) => c?.update?.("none"));
             return;
           }
           const v = Number(x);
           if (!Number.isFinite(v)) return;
-          imuMarker.x = clamp(v, imuCursor.fullMinX ?? 0, imuCursor.fullMaxX ?? 0);
-          refreshCharts("none");
+          imuMarker.x = clamp(v, 0, imuCursor.maxX || 0);
+          Object.values(charts || {}).forEach((c) => c?.update?.("none"));
         },
 
         clearMarker: () => {
           imuMarker.x = null;
-          refreshCharts("none");
+          Object.values(charts || {}).forEach((c) => c?.update?.("none"));
         },
 
         render: renderImu,
 
         wireCursor: () => wireImuCursor(ac.signal),
-        alignCursorSlider: () => requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea)),
+        // Recompute slider alignment (useful when the IMU tab is shown)
+        alignCursorSlider: () => requestAnimationFrame(alignImuCursorSliderToChartArea),
         wireAxisButtons: () => wireAxisToggleButtons(ac.signal),
         syncAxisButtons: syncAllAxisButtons,
 
@@ -1016,7 +887,7 @@
       clearMarker: () => {},
       render: renderImu,
       wireCursor: () => {},
-      alignCursorSlider: () => requestAnimationFrame(() => requestAnimationFrame(alignImuCursorSliderToChartArea)),
+      alignCursorSlider: () => requestAnimationFrame(alignImuCursorSliderToChartArea),
       wireAxisButtons: () => {},
       syncAxisButtons: syncAllAxisButtons,
       wireFormatToggle: () => {},

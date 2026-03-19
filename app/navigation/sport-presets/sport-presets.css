@@ -457,35 +457,64 @@ body.dark .sp-tag{ background: rgba(255,255,255,0.03); }
 @media (prefers-reduced-motion: reduce){
   .sp-page, .sp-page *{ transition: none !important; }
 }
-/* ==============================
-   Grouped metrics grid
-   ============================== */
-.sp-metric-group {
-  margin-bottom: 14px;
+/* =========================
+   Per-type timestamp tag rows
+   ========================= */
+
+.sp-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.sp-metric-group:last-child {
-  margin-bottom: 0;
-}
-
-.sp-metric-group-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
+.sp-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.01);
+  font-size: 12px;
   color: var(--text-color);
-  opacity: 0.45;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+body.dark .sp-tag-row { background: rgba(255,255,255,0.03); }
+
+.sp-tag-label {
+  flex: 1 1 auto;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-body.dark .sp-metric-group-label {
-  border-bottom-color: rgba(255,255,255,0.08);
+.sp-tag-win {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+  white-space: nowrap;
 }
 
-.sp-metric-group-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 4px 10px;
+.sp-tag-num {
+  width: 48px !important;
+  padding: 3px 6px !important;
+  text-align: center;
+  font-size: 12px !important;
 }
+
+.sp-tag-del {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.sp-tag-del:hover { opacity: 1; }
+.sp-tag-del i { font-size: 16px; }

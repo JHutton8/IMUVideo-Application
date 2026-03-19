@@ -414,6 +414,77 @@ body.dark .viewer-csv-preview{ background: rgba(255,255,255,0.04); }
   .viewer-csv{ height: 360px; }
 }
 
+/* =========================
+   Synthetic timestamp banner
+   ========================= */
+
+.viewer-synth-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 193, 7, 0.40);
+  background: rgba(255, 193, 7, 0.08);
+  font-size: 12px;
+  color: var(--text-color);
+}
+
+body.dark .viewer-synth-banner {
+  border-color: rgba(255, 213, 79, 0.35);
+  background: rgba(255, 213, 79, 0.07);
+}
+
+.viewer-synth-banner i {
+  font-size: 16px;
+  color: #d97706;
+  flex-shrink: 0;
+}
+body.dark .viewer-synth-banner i { color: #fbbf24; }
+
+.viewer-synth-banner span { flex: 1; min-width: 0; }
+
+.viewer-synth-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.viewer-synth-input {
+  width: 72px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.18);
+  background: var(--sidebar-color);
+  color: var(--text-color);
+  font-size: 12px;
+  outline: none;
+}
+body.dark .viewer-synth-input { border-color: rgba(255,255,255,0.18); }
+
+.viewer-synth-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--tran-02);
+  white-space: nowrap;
+}
+body.dark .viewer-synth-btn {
+  border-color: rgba(251, 191, 36, 0.40);
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.10);
+}
+.viewer-synth-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.viewer-synth-btn:active { transform: translateY(0); }
+
 /* IMU Selector Tabs */
 .viewer-imu-selector {
   display: flex;

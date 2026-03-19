@@ -227,40 +227,118 @@ body.dark .viewer-tsTag{
 }
 .viewer-tsIconBtn:hover{ transform: translateY(-1px); }
 .viewer-tsIconBtn:active{ transform: translateY(0); opacity: 0.92; }
-/* ── Per-timestamp window metrics ───────────────────── */
-.viewer-ts-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  padding: 7px 10px 4px;
-  margin-top: 5px;
-  border-top: 1px solid rgba(0,0,0,0.06);
-  background: rgba(0,0,0,0.015);
-  border-radius: 0 0 6px 6px;
-}
-body.dark .viewer-ts-metrics {
-  border-top-color: rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.025);
-}
+/* =========================
+   Range Analysis
+   ========================= */
 
-.viewer-ts-metric {
+.viewer-tsRange {
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.02);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  min-width: 70px;
+  gap: 10px;
 }
-.viewer-ts-metric-label {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  opacity: 0.4;
+body.dark .viewer-tsRange { background: rgba(255,255,255,0.04); }
+
+.viewer-tsRangePoints {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewer-tsRangePoint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.viewer-tsRangeLabel {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-color);
-  margin-bottom: 1px;
+  opacity: 0.5;
+  width: 12px;
+  flex-shrink: 0;
 }
-.viewer-ts-metric-val {
+
+.viewer-tsRangeTime {
   font-size: 12px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
   color: var(--text-color);
-  opacity: 0.88;
+  flex: 1;
+  min-width: 0;
+}
+
+.viewer-tsRangeSetBtn {
+  font-size: 11px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+.viewer-tsRangeSetBtn.is-set {
+  border-color: rgba(79, 179, 100, 0.6);
+  color: rgb(50, 160, 80);
+  background: rgba(79, 179, 100, 0.1);
+}
+body.dark .viewer-tsRangeSetBtn.is-set {
+  color: rgb(90, 200, 110);
+  background: rgba(79, 179, 100, 0.15);
+}
+
+.viewer-tsRangeDivider {
+  width: 12px;
+  height: 1px;
+  background: var(--card-border);
+  flex-shrink: 0;
+}
+
+.viewer-tsRangeClearBtn {
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+
+.viewer-tsRangeMetrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.viewer-tsRangeMetric {
+  background: var(--sidebar-color);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viewer-tsRangeMetricLabel {
+  font-size: 10px;
+  opacity: 0.6;
+  color: var(--text-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.viewer-tsRangeMetricVal {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.viewer-tsRangeHint {
+  font-size: 12px;
+  opacity: 0.7;
+  color: var(--text-color);
+  min-height: 16px;
+}
+
+/* A/B buttons on timestamp items */
+.viewer-tsABBtn {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
