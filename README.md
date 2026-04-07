@@ -1,263 +1,189 @@
-# IMUVideo Application (README IS CURRENTLY OUTDATED)
+# MoveSync
 
-**An affordable, portable body tracking system for sports and physiotherapy applications**
+**Motion captured. Patterns revealed.**
 
-This tool is a web-based application that combines real-time pose estimation with IMU (Inertial Measurement Unit) sensor data to provide comprehensive movement analysis. No installation required.
+MoveSync is a browser-based sports motion analysis platform that combines IMU sensor data visualization, video playback, pose estimation, and sensor fusion into a single, privacy-first application. No installation, no server, no account required.
 
-Deployment Link: https://jhutton8.github.io/IMUVideo-Application/
-
----
-
-## Purpose
-
-This tool is designed as an **observational aid** for coaches, physiotherapists, athletes, and researchers who want to:
-- Analyze movement patterns and biomechanics
-- Track progress over time
-- Document rehabilitation exercises
-- Review athletic performance
-- Correlate visual movement with acceleration, rotation, and magnetic field data
-
-**Important:** This is not a medical diagnostic tool. It provides observational data only and should not replace professional medical advice.
+**Deployment Link:** https://jhutton8.github.io/IMUVideo-Application/
 
 ---
 
 ## Features
 
-### Video Analysis
-- Analyze pre-recorded videos with MoveNet Thunder pose estimation
-- Real-time skeleton overlay during video playback
-- Frame-by-frame scrubbing with timeline slider
+### Project & Session Management
+- Organize recordings into **Projects**, each containing one or more **Sessions**
+- Each session can hold a video file and multiple IMU CSV files simultaneously
+- Import and export projects as ZIP archives (preserving all files and metadata)
+- Persistent in-memory session store with full library management
 
-### IMU Integration
-- Upload CSV files from IMU sensors (accelerometer, gyroscope, magnetometer)
-- Visualize sensor data in synchronized, interactive charts
-- Manual synchronization between video and sensor data
+### Video Panel
+- Video playback with custom controls (play/pause, seek, speed, volume, loop, fullscreen)
+- Configurable playback speed (0.25×, 0.5×, 1×, 1.5×, 2×)
+- **MoveNet Thunder** pose overlay — real-time skeleton rendering on video
+- Joint selection and angle measurement tools
+- Video metadata popover with session info
 
-### Annotation & Analysis
-- Add timestamped events during video playback
-- Label specific movements (jumps, claps, custom events)
-- Add notes and observations for each timestamp
-- Jump directly to marked events
+### IMU Data Visualization
+- Multi-sensor support — load and switch between multiple IMU CSVs per session
+- Interactive **accelerometer**, **gyroscope**, and **magnetometer** charts (Chart.js)
+- Per-axis toggle buttons with persistence via localStorage
+- Draggable cursor slider with real-time axis readouts at cursor position
+- Auto-detects time column; synthesises timestamps when none is present (configurable Hz)
+- Switchable between **Plots** and **CSV preview** views
 
-### Project Management
-- Export complete projects as ZIP files (includes video, CSV data, and annotations)
-- Import previously saved projects to continue analysis
-- Generate human-readable text reports
-- Automatic localStorage backup for active sessions
+### IMU Processing Pipeline
+After CSV data is loaded, a full processing pipeline runs automatically:
+- **Madgwick sensor fusion** (6-DOF or 9-DOF with magnetometer) producing quaternions per sample
+- **Gravity removal** via quaternion rotation to world frame, yielding linear acceleration
+- **ZUPT** (Zero Velocity Update) integration for speed and distance estimates
+- **Jerk** computation (central difference derivative of smoothed accel magnitude)
+- **Cadence / rep detection** via adaptive peak detection
+- **Session summary statistics**: peak/mean acceleration, peak speed, total distance, angular velocity, orientation range, active time, total impulse
+
+### Sensor Fusion 3D Panel
+- Live 3D disc visualisation of sensor orientation (WebGL-free, pure Canvas 2D)
+- Quaternion, Euler angle, and rotation matrix readouts
+- Updates in sync with video playback or IMU cursor position
+
+### Expanded Metrics Analysis Panel
+- Full breakdown of all computed metrics, grouped by category (Acceleration, Speed & Distance, Angular Velocity, Orientation, Rhythm, Session)
+- Filter to **Key Metrics** defined by a sport preset, or view all
+- Per-metric time-series graphs (inline Chart.js, downsampled with peak-preserving bucketing)
+- Live search across all metric names
+
+### Key Metrics Panel
+- Compact tile display of metrics selected by the active sport preset
+- Values update automatically when IMU data is processed
+
+### Time Sync
+- **Mark video** and **Mark IMU** reference points to compute a time offset
+- **Follow video** mode: IMU cursor tracks video playback automatically
+- **Manual** mode: independent cursor control
+- **T1 / T2** range markers on all IMU charts with **Apply Timeframe** to zoom in
+- Bidirectional slider sync: dragging either the video seek bar or IMU cursor moves the other (when an offset is set)
+
+### Timestamps Panel
+- Add, edit, and delete timestamped annotations on any session
+- Labels auto-coloured by a deterministic hue hash
+- Click any timestamp to seek video directly to that moment
+- Notes field with `Ctrl+Enter` shortcut to save
+
+### Sport Presets
+- Create and manage sport configurations defining default sensor, overlay mode, key metrics, and timestamp types
+- Metrics and timestamp types are reusable across sessions
+- Import / export presets as JSON
+
+### Library
+- Browse all projects with search and sort (by date, name, sessions count)
+- Multi-select for bulk ZIP export
+- Expand any project card to see its sessions inline
+- Import previously exported project JSON files (v1 and v2 formats, with file restoration)
+
+### Compare Sessions
+- Side-by-side metadata and computed statistics comparison of any two sessions
+- Swap A/B, open either session directly in the viewer
+
+### Tutorial System
+- Interactive step-by-step tutorials for key features
+- Auto-scroll runner with keyboard shortcuts (`Enter` / `Shift+Enter` / `Esc`)
+- Configurable finish action per tutorial step
+
+### Global Search
+- Ctrl+F style in-page search across any loaded page
+- Next / previous match navigation with live counter
+- Highlights auto-clear when navigating away
 
 ---
 
 ## Getting Started
 
-### Accessing the App
+MoveSync runs entirely in the browser — just open the link above. No installation, downloads, or account needed.
 
-1. Navigate to the GitHub Pages URL: `https://[your-username].github.io/[repo-name]/`
-2. The app loads entirely in your browser—no downloads or installations needed.
+For developers who want to run it locally:
 
-### Basic Workflow
+```bash
+python -m http.server 8000
+```
 
-#### For Video Analysis:
-
-1. **Upload Video**: Click "Select video" and choose your video file
-2. **Optional - Upload IMU Data**: 
-   - Click "Upload CSV" to load sensor data
-   - Use the data timeline slider to find a reference point in your sensor data
-3. **Synchronize** (if using IMU data):
-   - Play the video to a recognizable event (e.g., a jump or clap)
-   - Click "Mark video time"
-   - Move the data timeline slider to the same event in your sensor data
-   - Click "Mark data time"
-   - Click "Apply sync" to align both timelines
-4. **Start Tracking**: Click "Start" to begin pose estimation
-5. **Annotate**: While playing, click "Add timestamp" to mark important moments
-6. **Export**: Save your complete project using "Export project"
+Then open `http://localhost:8000`. The app must be served over HTTP, not opened as a `file://` URL, because page partials are loaded via `fetch()`.
 
 ---
 
-## IMU Data Formatting
+## Basic Workflow
 
-The CSV file must match this structure:
+1. **Upload** — go to *Upload*, create a project, add one or more sessions (each with a video and/or IMU CSVs), then click **Save project**.
+2. **Library** — find your project in the Library. Expand it to see sessions; click **View** to open one in the Session Viewer.
+3. **Session Viewer** — select a project and session from the pickers at the top. Video and IMU data load automatically.
+4. **Sync** — use the *Time Sync* card to align the video and IMU timelines if they were recorded separately.
+5. **Analyse** — switch tabs to explore IMU graphs, sensor fusion 3D, or the expanded metrics panel.
+6. **Annotate** — add timestamps with labels and notes as you scrub through the video.
+7. **Export** — go to the Library and export your project as a ZIP to preserve all files and metadata.
 
-### Required Headers
+---
+
+## IMU CSV Format
+
+MoveSync auto-detects column names (case-insensitive). The recognised column headers are:
+
+| Column | Signal |
+|--------|--------|
+| `ax`, `ay`, `az` | Accelerometer (m/s²) |
+| `gx`, `gy`, `gz` | Gyroscope (deg/s or rad/s — auto-detected) |
+| `mx`, `my`, `mz` | Magnetometer (µT) — optional |
+| `time`, `t`, `timestamp`, `timesec`, `sec`, `seconds` | Time column (any one of these) |
+
+If no time column is found, MoveSync synthesises timestamps using a configurable sample rate (default 100 Hz, adjustable via the banner that appears in the IMU panel).
+
+**Example (with time column):**
+```csv
+time,ax,ay,az,gx,gy,gz,mx,my,mz
+0.000,0.12,9.81,0.05,1.2,-0.5,0.3,45.2,-12.3,38.7
+0.010,0.15,9.82,0.04,1.1,-0.6,0.2,45.1,-12.4,38.8
+```
+
+**Example (no time column — timestamps synthesised):**
 ```csv
 ax,ay,az,gx,gy,gz,mx,my,mz
+0.12,9.81,0.05,1.2,-0.5,0.3,45.2,-12.3,38.7
+0.15,9.82,0.04,1.1,-0.6,0.2,45.1,-12.4,38.8
 ```
-
-- **ax, ay, az**: Accelerometer data (m/s²) for X, Y, Z axes
-- **gx, gy, gz**: Gyroscope data (°/s) for X, Y, Z axes
-- **mx, my, mz**: Magnetometer data (µT) for X, Y, Z axes
-
-### Example CSV:
-```csv
-ax,ay,az,gx,gy,gz,mx,my,mz
-0.12,9.81,0.05,0.01,-0.02,0.00,45.2,-12.3,38.7
-0.15,9.82,0.04,0.02,-0.01,0.01,45.1,-12.4,38.8
-...
-```
-
-### Important Notes:
-- **No timestamp column is needed**: The app generates timestamps automatically based on the sample rate
-- **Default sample rate**: 104 Hz (configurable in `config.js` via `SAMPLE_RATE_HZ`)
-- **Data order**: Each row represents one sample; samples must be in chronological order
-- **Missing values**: Use `0` for any missing sensor values
-
-### Exporting from Common IMU Devices:
-- **Movesense Mobile App**: Export as CSV, ensure headers match the required format, this may require manual restructuring
-- **Arduino/Custom Sensors**: Format your output to match the header structure above
-- **Mobile apps**: Many IMU recording apps allow CSV export—verify the header names
-
----
-
-## Controls & Interface
-
-### Video Controls
-- **Start/Stop**: Begin or pause pose estimation
-- **Clear**: Reset everything and start fresh
-- **Video timeline slider**: Scrub through uploaded video frames
-- **Step counter**: Shows current frame / total frames at 30 FPS
-
-### IMU Controls
-- **Upload CSV**: Load sensor data file
-- **Data timeline slider**: Navigate through IMU data independently
-- **Mark video time**: Set a reference point in the video
-- **Mark data time**: Set a reference point in the sensor data
-- **Apply sync**: Calculate and apply time offset between video and data
-
-### Timestamp Controls
-- **Add timestamp**: Mark current video time with optional label, event type, and notes
-- **Timestamp list**: Click any timestamp to jump to that moment
-- **Delete button (×)**: Remove individual timestamps
-
-### Project Controls
-- **Export project**: Download complete ZIP file with video, CSV, and all annotations
-- **Import project**: Load a previously saved project
-- **Generate report**: Create a human-readable text summary
-
----
-
-## Project Files
-
-### Export Structure
-When you export a project, you get a ZIP file containing:
-```
-project_name.zip
-├── project.json          # Metadata, sync offset, timestamps
-├── video/
-│   └── video_from_project.mp4
-└── data/
-    └── imu_data.csv
-```
-
-### What's Saved:
-- **project.json**: Sync offset, all timestamps with labels/notes/event types, sample rate, creation date
-- **Video file**: Your original uploaded video
-- **CSV file**: Your IMU sensor data
-- **Notes**: Any general notes added in the notes field
-
-### Import Workflow:
-1. Click "Import project"
-2. Select your `.zip` file
-3. The app automatically loads video, CSV data, annotations, and sync settings
-4. Continue where you left off
-
----
-
-## Technical Details
-
-### Technologies Used
-- **TensorFlow.js**: Machine learning framework for browser-based pose estimation
-- **MoveNet Thunder**: Google's pose detection model optimized for accuracy
-- **Chart.js**: Real-time visualization of IMU sensor data
-- **JSZip**: Project export/import functionality
-
-### Browser Requirements
-- Modern browser with WebGL support (Chrome, Firefox, Edge, Safari)
-- JavaScript enabled
-- Recommended: Desktop or laptop for best experience
-
-### Performance Considerations
-- **Frame skipping**: Upload mode processes every 2nd frame by default for better performance
-- **Chart throttling**: IMU charts update at most every 33ms to maintain smooth playback
-- **Memory usage**: Large videos (>500MB) may cause slowdown; consider compressing videos first
-
-### Privacy & Data
-- **Everything runs locally**: No data is sent to external servers
-- **No account required**: No login, no tracking, no data collection
-- **localStorage**: Projects are automatically saved in your browser (cleared when you clear browser data)
-- **Export for backup**: Always export important projects to preserve them
-
----
-
-## Use Cases
-
-### Sports Performance
-- **Analyze technique**: Review and compare movement patterns across sessions
-- **Progress tracking**: Document improvements in form or range of motion
-- **Injury prevention**: Identify movement asymmetries or compensation patterns
-
-### Physiotherapy & Rehabilitation
-- **Exercise documentation**: Record patient exercises for remote review
-- **Progress monitoring**: Track ROM, balance, and coordination improvements
-- **Patient education**: Visual feedback to help patients understand their movement
-
-### Research & Education
-- **Biomechanics studies**: Collect movement and IMU data for analysis
-- **Teaching tool**: Demonstrate proper form and movement principles
-- **Low-cost alternative**: Accessible motion capture for educational institutions
 
 ---
 
 ## Troubleshooting
 
 ### Video won't load
-- **Check file format**: Supported formats are MP4, WebM, MOV (browser-dependent)
-- **File size**: Very large files (>1GB) may cause issues; try compressing the video
-- **Codec issues**: Re-encode video using H.264 codec for best compatibility
+- **Supported formats:** MP4 (H.264), WebM, MOV — exact support depends on your browser. Re-encoding to H.264 MP4 gives the widest compatibility.
+- **Large files:** Videos over ~1 GB may cause slowdown. Compress or trim the video before uploading.
 
-### CSV not loading
-- **Check headers**: Ensure first row exactly matches: `ax,ay,az,gx,gy,gz,mx,my,mz`
-- **No extra columns**: Remove timestamp columns or other non-sensor data
-- **Encoding**: Save CSV as UTF-8 without BOM
-- **Commas only**: Use comma separators, not semicolons or tabs
+### CSV not loading / charts are empty
+- **Check headers:** MoveSync looks for `ax, ay, az`, `gx, gy, gz`, and optionally `mx, my, mz`. Column names are case-insensitive.
+- **No time column:** If your CSV has no time column, a yellow banner will appear in the IMU panel — set the correct sample rate and click **Apply**.
+- **Encoding:** Save the CSV as UTF-8 without BOM, using commas as separators (not semicolons or tabs).
 
-### Sync not working
-- **Clear markers**: Click "Apply sync" to reset, then mark again
-- **Recognizable events**: Choose obvious events (jumps, claps, impacts) for sync points
-- **Data timeline**: Make sure you've moved the data timeline slider before marking data time
+### IMU and video feel out of sync
+- Use the **Time Sync** card in the Session Viewer: mark a recognisable event (e.g. a jump or impact) in both the video and the IMU cursor, then click **Compute offset**. Enable **Follow video** to lock the IMU cursor to playback.
 
-### Charts not updating
-- **Refresh page**: Sometimes Chart.js needs a fresh start
-- **Check CSV data**: Ensure your CSV has valid numeric values
-- **Sample rate**: Verify `SAMPLE_RATE_HZ` in `config.js` matches your actual sensor rate
+### Sensor fusion 3D panel shows nothing
+- The panel requires at least `ax/ay/az` and `gx/gy/gz` columns. Check the browser console for any processing errors.
+- Adding `mx/my/mz` (magnetometer) enables 9-DOF fusion and improves heading accuracy.
 
-### Performance issues
-- **Reduce video resolution**: Lower resolution videos process faster
-- **Close other tabs**: Free up system resources
-- **Increase frame skip**: Edit `UPLOAD_FRAME_SKIP` in `config.js` (default: 2)
+### Project data disappeared after refreshing
+- MoveSync stores everything in memory — data is lost on page reload by design (because `File` objects cannot be serialised to localStorage). Always **Export** your project as a ZIP before closing the tab.
+
+### Pose overlay (MoveNet) is slow or doesn't start
+- MoveNet Thunder loads from a CDN on first use — allow a few seconds for the model to download.
+- Make sure the video is fully loaded before clicking **Start tracking**.
+- Close other browser tabs to free GPU/CPU resources.
+
+### App shows a blank page or "Failed to load" error
+- The app must be served over HTTP, not opened directly as a `file://` URL. Use the deployed GitHub Pages link, or run a local server (`python -m http.server 8000`).
 
 ---
 
-## Configuration
+## Privacy
 
-Advanced users can customize the app by editing `js/config.js`:
-
-```javascript
-// Video resolution for webcam
-VIDEO_WIDTH = 640;
-VIDEO_HEIGHT = 480;
-
-// Keypoint confidence threshold
-MIN_PART_CONFIDENCE = 0.2;
-
-// Frame skipping for performance
-UPLOAD_FRAME_SKIP = 2;  // Process every 2nd frame
-
-// Horizontal flip (mirror effect)
-FLIP_HORIZONTAL_UPLOAD = true;  // Flip uploaded videos
-
-// IMU sample rate in Hz
-SAMPLE_RATE_HZ = 104;  // Adjust to match your sensor
-```
+Everything runs locally in the browser. No data is sent to any server. There are no accounts, no analytics, and no telemetry. Projects are stored in memory only — use **Export** to persist them between sessions.
 
 
 ---
@@ -290,14 +216,6 @@ For technical details about the architecture and implementation, see [TECHNICAL.
 
 ---
 
-## Acknowledgments
-
-- **TensorFlow.js team**: For making ML accessible in the browser
-- **MoveNet**: Google's pose estimation model
-- **Chart.js**: Beautiful, responsive charts
-
----
-
 ## Additional Resources
 
 - [MoveNet Documentation](https://www.tensorflow.org/hub/tutorials/movenet)
@@ -307,5 +225,5 @@ For technical details about the architecture and implementation, see [TECHNICAL.
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: December 2025
+**Version**: 8.0  
+**Last Updated**: April 2026
