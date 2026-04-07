@@ -1,649 +1,566 @@
-# Technical Documentation
+# MoveSync — Technical Documentation
 
-Deep dive into the IMUVideo Application architecture and implementation.
+Deep dive into the architecture, module system, and data pipelines.
 
 ---
 
 ## System Overview
 
-The IMUVideo Application is a **client-side web application** that combines:
-1. **Video pose estimation** (TensorFlow.js + MoveNet Thunder)
-2. **IMU sensor data visualization** (Chart.js)
-3. **Manual synchronization** between video and sensor timelines
-4. **Project persistence** (localStorage + ZIP export/import)
+MoveSync is a **client-side single-page application** built with plain HTML, CSS, and JavaScript — no framework, no build step. Navigation is hash-based; page content is loaded by fetching HTML partials and injecting them into `#pageRoot`.
 
 ### Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **No backend** | Privacy-first, zero cost, works offline, instant deployment via GitHub Pages |
-| **Pure vanilla JavaScript** | No build step, no dependencies to manage, easy for contributors |
-| **localStorage** | Automatic session recovery, no user accounts needed |
-| **ZIP export** | Self-contained projects, shareable between users and devices |
-| **MoveNet Thunder** | Higher accuracy for offline video analysis |
+| **No backend** | Privacy-first, zero cost, works offline, instant GitHub Pages deployment |
+| **Vanilla JS + IIFE modules** | No build toolchain, no dependency management, contributors can read any file directly |
+| **Hash router + HTML partials** | Avoids full-page reloads; each page ships its own HTML, CSS, and JS |
+| **In-memory session store** | Files (video, CSV) are `File` objects that cannot survive localStorage; keeping everything in RAM avoids silent data loss |
+| **Event-driven coordination** | Modules communicate via `CustomEvent` on `document`, keeping them decoupled |
+| **ZIP export** | Self-contained, shareable projects without a database |
 
 ---
 
-## Module Architecture
-
-### File Structure & Responsibilities
+## File Structure
 
 ```
-index.html          # DOM structure, CSS styles, external library imports
+index.html                          # App shell, sidebar, intro overlay
+
+app/
+├── app-shell.js                    # Router, asset loader, namespace bootstrap
+├── core/
+│   └── session-store.js            # In-memory project/session store (MoveSyncSessionStore)
 │
-js/
-├── config.js       # Constants, DOM refs, utility functions
-├── imu.js          # IMU data handling, charts, sync, timestamps
-├── movenet.js      # Pose detection, rendering, video controls
-└── main.js         # App initialization, global state reset
+├── styles/
+│   ├── styles.css                  # Global CSS entrypoint (@imports below)
+│   ├── base/                       # fonts, variables, reset
+│   └── layout/                     # background, shell, header, page-root, scrollbar
+│
+├── features/
+│   ├── intro/                      # Splash overlay + flow-field canvas animation
+│   ├── sidebar/
+│   │   ├── sidebar.js              # Collapse/expand, ARIA, localStorage persistence
+│   │   ├── theme/theme.js          # Light/dark toggle
+│   │   └── search/search.js        # In-page Ctrl+F search with <mark> highlighting
+│   └── tutorial/                   # Tutorial hub + auto-scroll step runner
+│       └── tutorials/              # Per-feature tutorial definitions
+│
+└── navigation/
+    ├── dashboard/                  # Dashboard page (KPIs, recent sessions)
+    ├── upload/                     # Project + session upload wizard
+    ├── library/                    # Project library (search, sort, export, import)
+    ├── sport-presets/              # Sport preset CRUD
+    ├── compare-sessions/           # Side-by-side session comparison
+    └── session-viewer/             # Main analysis page
+        ├── session-viewer.js       # Page controller + dep loader
+        ├── session-viewer.html
+        ├── session-viewer.css      # @imports all sub-panel CSS
+        │
+        ├── session-picker/         # Project + session dropdown picker
+        ├── key-metrics-panel/      # Compact preset-driven metric tiles
+        ├── timestamps/             # Timestamp annotation panel
+        ├── time-sync/              # Video ↔ IMU time alignment
+        ├── video-panel/            # Video player, pose overlay, metadata popover
+        │   ├── arm-angle-analysis/ # Quaternion-based joint angle calculator
+        │   └── pose-overlay/       # MoveNet loading, start/stop, joint UI
+        └── bottom-panel/
+            ├── 1-expanded-metrics/ # Full metric breakdown with inline graphs
+            ├── 2-imu/              # IMU charts, cursor, CSV preview
+            │   └── plots/          # imu-filters.js, time-series-chart.js
+            └── 3-sensor-fusion/    # 3D disc visualisation, Madgwick wrapper
+                ├── sensor-fusion.js
+                └── ahrs_min.js     # Madgwick & Mahony filter implementations
+        │
+        └── imu-processing/
+            └── imu-processing.js   # Full IMU pipeline (fusion, ZUPT, metrics)
 ```
-
-### Dependency Graph
-
-```
-main.js
-  ├─→ config.js (global constants, DOM refs)
-  ├─→ imu.js (CSV parsing, charts)
-  └─→ movenet.js (pose estimation)
-       └─→ imu.js (IMU chart updates)
-```
-
-**Load Order** (defined in `index.html`):
-1. External libraries (TensorFlow.js, MoveNet, Chart.js, JSZip)
-2. `config.js` (defines globals used by all modules)
-3. `imu.js` (self-contained IMU logic)
-4. `movenet.js` (depends on IMU for chart updates)
-5. `main.js` (orchestrates everything)
 
 ---
 
-## Application Flow
+## Application Bootstrap
 
 ### Startup Sequence
 
-```javascript
-// main.js → main()
-async function main() {
-  1. Wait for TensorFlow.js: await tf.ready()
-  2. Load MoveNet Thunder model
-  3. Attach UI event listeners
-  4. Initialize IMU charts
-  5. Setup CSV upload
-  6. Setup sync buttons
-  7. Initialize timestamp UI
-}
+```
+index.html loads
+  → styles.css
+  → session-store.js      (defines MoveSyncSessionStore)
+  → app-shell.js          (defines MoveSyncApp, router, asset loader)
+  → sidebar.js            (self-registers on movesync:app-init)
+  → theme.js              (self-registers on movesync:app-init)
+  → search.js             (self-registers on movesync:app-init)
+  → intro.js              (runs DOMContentLoaded, starts splash)
+      → User clicks "Start tracking"
+          → MoveSyncApp.init()
+              → initNavigation()   (wire sidebar links + hashchange)
+              → hydrateRuntimeFromDb()
+              → initFirstLoad()    (force Dashboard hash, load first page)
+              → dispatchEvent(movesync:app-init)
+                  → sidebar, theme, search modules initialise
 ```
 
-### Video Upload Flow
+### Global Namespaces
 
-```
-User selects file
-  → handleFileChange()
-    → Revoke old URL
-    → Create new blob URL
-    → Set video.src
-    → video.onloadedmetadata:
-      → syncVideoAndCanvasSize()
-      → setupVideoTimelineSlider()
-      → setCurrentVideoFileInfo()
-      → loadProjectFromLocal()
-      → Attach timeupdate listener
-```
-
-### CSV Upload Flow
-
-```
-User clicks "Upload CSV"
-  → File dialog opens
-  → User selects CSV
-  → FileReader reads as text
-  → Parse CSV:
-    → Split into lines
-    → Extract headers
-    → Convert rows to objects
-    → Generate time axis (index / SAMPLE_RATE_HZ)
-  → Initialize/update Chart.js plots
-  → Setup data timeline slider
-  → Enable "Mark data time" button
-```
-
-### Tracking Loop
-
-```javascript
-renderFrame() {
-  1. Check video.readyState
-  2. Sync canvas size with video
-  3. Check if video ended
-  4. Increment frameIndex
-  
-  5. Estimate pose (with frame skipping):
-     if (frameIndex % UPLOAD_FRAME_SKIP === 0) {
-       poses = await detector.estimatePoses(video)
-       lastPose = poses[0]
-     }
-  
-  6. Clear canvas
-  7. Draw overlay info (mode, score)
-  8. Highlight nose if present
-  9. drawKeypoints(keypoints)
-  10. drawSkeleton(keypoints)
-  
-  11. Update video timeline slider
-  12. Update IMU charts (throttled to 33ms)
-  
-  13. requestAnimationFrame(renderFrame)
-}
-```
+| Global | Purpose |
+|--------|---------|
+| `window.MoveSyncApp` | Router, asset loader, DOM cache, `app.init()` |
+| `window.MoveSync` | Shared helpers (e.g. `goToPage(name)`) |
+| `window.MoveSyncPages` | Page module registry: `{ "Dashboard": { init, destroy } }` |
+| `window.MoveSyncSessionStore` | Project/session CRUD API |
+| `window.MoveSyncTutorials` | Tutorial definition registry |
 
 ---
 
-## Synchronization System
+## Router & Asset Loader
 
-### Problem
-Video and IMU data are recorded separately with different start times. We need to align them.
+### Hash-based Routing (`app-shell.js`)
 
-### Solution: Two-Point Alignment
+Navigation links carry `data-page` and `data-src` attributes:
 
-1. **User marks video time** (e.g., at a jump): `videoMarkedTime = video.currentTime`
-2. **User marks data time** (e.g., at acceleration spike): `dataMarkedTime = csvTimesSeconds[index]`
-3. **Calculate offset**: `syncOffset = videoMarkedTime - dataMarkedTime`
+```html
+<a href="#Dashboard" data-page="Dashboard"
+   data-src="app/navigation/dashboard/dashboard.html">
+```
 
-### Usage
-Whenever we need to show IMU data for a video time:
+On `hashchange` (or initial load), the router:
+1. Decodes the hash to a page name
+2. Finds the matching sidebar link
+3. Fetches `data-src` via `fetch()`
+4. Injects the HTML into `#pageRoot`
+5. Calls `loadAssetsForPage(name)` which loads CSS and JS
+6. Calls `mount()` or `init()` on the registered page module
+
+### Page Asset Manifest
+
+Each page declares its CSS and JS in `app.PAGE_ASSETS`:
+
 ```javascript
-const adjustedTime = videoTime - syncOffset;
-// Find IMU samples around adjustedTime
+"Session Viewer": {
+  css: "app/navigation/session-viewer/session-viewer.css",
+  js: { always: ["app/navigation/session-viewer/session-viewer.js"] }
+}
 ```
 
-### Example
-```
-Video event at t=5.2s
-IMU event at t=1.0s
-syncOffset = 5.2 - 1.0 = 4.2s
+- **`once`**: Scripts that must only ever be injected once (e.g. heavy models)
+- **`always`**: Scripts re-injected on every page visit (page controller logic)
 
-Later, when video is at t=10.0s:
-adjustedTime = 10.0 - 4.2 = 5.8s
-→ Show IMU data from 5.8s
+### Page Module Lifecycle
+
+```javascript
+// Register a page:
+window.MoveSyncPages["Dashboard"] = {
+  init()    { /* wire events, fetch data, render */ },
+  destroy() { /* abort controllers, clear references */ },
+};
 ```
 
-### Edge Cases
-- **No sync applied**: `syncOffset = 0` (default)
-- **Reverse sync**: If IMU starts before video, offset can be negative
-- **Multiple syncs**: Each new sync overwrites the previous offset
+`init()` (or `mount()`) is called after HTML injection. `destroy()` is called before navigating away.
 
 ---
 
-## Chart System
+## Session Store (`session-store.js`)
 
-### Chart.js Configuration
+All project and session data lives in `window.MoveSync.runtime.sessionViewer` — a plain object in RAM. There is no IndexedDB or localStorage persistence for file data (because `File` objects cannot be serialised).
 
-**Three independent charts:**
-- `chartAcc`: Accelerometer (ax, ay, az)
-- `chartGyro`: Gyroscope (gx, gy, gz)
-- `chartMag`: Magnetometer (mx, my, mz)
-
-**Performance Optimizations:**
-```javascript
-options: {
-  animation: false,           // No smooth transitions
-  parsing: false,             // Data is pre-parsed
-  normalized: true,           // Data is normalized
-  responsive: true,           // Adapt to container size
-  maintainAspectRatio: false, // Fill container height
-  pointRadius: 0,             // No point markers (performance)
-}
-```
-
-### Update Strategies
-
-**Full Update** (on CSV load):
-```javascript
-updateImuChartsFull() {
-  // Load ALL data points into chart
-  chart.data.datasets[i].data = csvData.map((row, idx) => ({
-    x: csvTimesSeconds[idx],
-    y: row[key] ?? 0
-  }));
-  chart.update("none"); // "none" = skip animations
-}
-```
-
-**Windowed Update** (during playback):
-```javascript
-updateChartsForVideoTime(videoTime) {
-  // Show 5-second sliding window
-  const adjustedTime = videoTime - syncOffset;
-  const windowSize = 5;
-  const startTime = adjustedTime - 2.5;
-  const endTime = adjustedTime + 2.5;
-  
-  // Update X-axis bounds
-  chart.options.scales.x.min = startTime;
-  chart.options.scales.x.max = endTime;
-  chart.update("none");
-  
-  // Position vertical marker
-  const markerPos = (adjustedTime - startTime) / windowSize * 100;
-  marker.style.left = `${markerPos}%`;
-}
-```
-
-**Throttling:**
-```javascript
-// Avoid updating charts every frame (performance)
-const IMU_UPDATE_THROTTLE_MS = 33; // ~30fps
-let lastImuUpdateTime = 0;
-
-if (now - lastImuUpdateTime > IMU_UPDATE_THROTTLE_MS) {
-  updateChartsForVideoTime(currentTime);
-  lastImuUpdateTime = now;
-}
-```
-
----
-
-## Pose Estimation
-
-### MoveNet Thunder
-
-**Specifications:**
-- Accuracy: High (trained on diverse datasets)
-- Speed: ~10fps on typical CPU
-- Keypoints: 17 body landmarks
-- Use case: Offline video analysis
-
-### Skeleton Definition
-
-MoveNet outputs 17 keypoints:
-```javascript
-keypoints = [
-  { name: "nose", x: 320, y: 240, score: 0.95 },
-  { name: "left_eye", x: 315, y: 235, score: 0.92 },
-  { name: "right_eye", x: 325, y: 235, score: 0.93 },
-  // ... 14 more keypoints
-]
-```
-
-**Connected Pairs** (for skeleton lines):
-```javascript
-MOVENET_CONNECTED_KEYPOINTS = [
-  ["nose", "left_eye"],
-  ["left_shoulder", "left_elbow"],
-  ["left_elbow", "left_wrist"],
-  ["left_shoulder", "right_shoulder"],
-  ["left_hip", "right_hip"],
-  // ... etc
-]
-```
-
-### Drawing Pipeline
+### Data Shape
 
 ```javascript
-drawKeypoints(keypoints) {
-  keypoints.forEach(kp => {
-    if (kp.score < 0.02) return; // Skip very low confidence
-    
-    // Color by confidence
-    const color = kp.score >= MIN_PART_CONFIDENCE 
-      ? "#2196F3"  // High confidence: blue
-      : "rgba(33, 150, 243, 0.3)"; // Low confidence: transparent
-    
-    ctx.arc(kp.x, kp.y, 5, ...);
-  });
-}
-
-drawSkeleton(keypoints) {
-  // Create lookup: name → keypoint
-  const byName = {};
-  keypoints.forEach(kp => byName[kp.name] = kp);
-  
-  // Draw lines between connected pairs
-  MOVENET_CONNECTED_KEYPOINTS.forEach(([a, b]) => {
-    const kp1 = byName[a];
-    const kp2 = byName[b];
-    
-    // Only draw if both endpoints are confident
-    if (kp1.score >= MIN_PART_CONFIDENCE && 
-        kp2.score >= MIN_PART_CONFIDENCE) {
-      ctx.moveTo(kp1.x, kp1.y);
-      ctx.lineTo(kp2.x, kp2.y);
-      ctx.stroke();
+runtime.sessionViewer = {
+  projects: [
+    {
+      id: 1,
+      name: "Athlete A — Week 3",
+      notes: "...",
+      createdAt: "ISO string",
+      updatedAt: "ISO string",
+      sessions: [
+        {
+          id: 1,
+          name: "Warm-up",
+          notes: "...",
+          createdAt: "ISO string",
+          videoFile: File | null,
+          imuFiles: [File, ...],
+          imus: [
+            { id, label, file, csvText, skeletonNode }
+          ],
+          projectId: 1,
+          project: { id: 1, name: "..." }
+        }
+      ]
     }
-  });
+  ],
+  activeProjectId: 1,
+  activeSession: { /* session object */ },
+  activeSessionRef: { projectId: 1, sessionId: 2 }
 }
 ```
 
-### Frame Skipping
+### Key API Methods
 
-**Problem:** Thunder model is too slow to process every frame at 30fps.
+| Method | Description |
+|--------|-------------|
+| `getProjects()` | Returns all projects |
+| `saveRuntimeProject(project)` | Upsert a project (assigns IDs if missing) |
+| `deleteProject(id)` | Remove project and its sessions |
+| `setActiveSession(projectId, sessionId)` | Set the active session; fires events |
+| `getActiveSession()` | Returns the current active session object |
+| `getSessionsForProject(projectId)` | Returns sessions for a given project |
+| `hydrateRuntimeFromDb()` | Normalises IDs and fires change events on startup |
 
-**Solution:** Process every Nth frame, reuse last pose for skipped frames.
+### Events Fired
 
-```javascript
-frameIndex++;
-let poseToDraw = lastPose;
-
-if (frameIndex % UPLOAD_FRAME_SKIP === 0 || !lastPose) {
-  const poses = await detector.estimatePoses(video);
-  lastPose = poses[0] || null;
-  poseToDraw = lastPose;
-}
-
-// Draw skeleton using poseToDraw (may be from a previous frame)
-```
-
-**Trade-offs:**
-- `UPLOAD_FRAME_SKIP = 1`: Max accuracy, slow performance
-- `UPLOAD_FRAME_SKIP = 2`: Good balance (default)
-- `UPLOAD_FRAME_SKIP = 5`: Fast performance, noticeable lag
+| Event | When |
+|-------|------|
+| `movesync:projects-changed` | Any project create/update/delete |
+| `movesync:sessions-changed` | Any session change or active session change |
+| `movesync:active-session-changed` | Active session pointer changes |
 
 ---
 
-## Persistence System
+## IMU Processing Pipeline (`imu-processing.js`)
 
-### localStorage Strategy
+Triggered by `movesync:imu-data-ready`, which `imu-panel.js` fires after parsing a CSV. The pipeline reads `window.__currentImuReadoutCache` (set by `imu-panel.js`) and writes `window.currentProcessedSession`.
 
-**Key Format:**
+### Pipeline Steps
+
 ```
-project_${videoName}_${videoSize}
+1. detectSampleRate(t[])
+   └── Median inter-sample interval → Hz (clamped 10–1000)
+
+2. runMadgwick(raw, sampleRate)
+   ├── Detect gyro units (p75 magnitude: >0.5 = deg/s, else rad/s)
+   ├── Hard-iron calibration (per-axis median subtraction on magnetometer)
+   ├── Run Madgwick filter sample-by-sample (6-DOF or 9-DOF)
+   └── Return quaternions[n], valid, hasMag
+
+3. removeGravity(raw, quaternions, n)
+   ├── Rotate world gravity [0,0,-1] into body frame per sample
+   ├── Subtract from raw accelerometer to get linear accel (body frame)
+   └── Rotate back to world frame → linear.{x,y,z} in m/s²
+
+4. lowPass(data, sampleRate, cutoff=20Hz)   ← applied once per signal
+   └── First-order IIR — no double-smoothing
+
+5. computeJerk(accelMagnitudeSmooth, t[])
+   └── Central difference derivative → g/s
+
+6. integrateWithZUPT(linear, raw, t[], sampleRate)
+   ├── Stillness detection: gyro < 8°/s AND accel ∈ [0.80, 1.20] g
+   │   for ≥ 8 consecutive samples
+   ├── Reset velocity to zero at each ZUPT event
+   └── Trapezoidal integration → velocity (m/s), displacement (m),
+       cumulative distance (m), stillnessMask
+
+7. computeEuler(quaternions)
+   └── Roll, pitch, yaw in degrees
+
+8. computeSummary(derived, motion, euler)
+   └── Peak/mean accel, peak speed, total distance, ZUPT count,
+       pitch/roll/yaw range, session duration
 ```
 
-Example: `project_exercise_720p.mp4_52428800`
+### Output: `ProcessedSession`
 
-**Stored Data:**
 ```javascript
 {
-  syncOffset: 4.2,
-  timestamps: [
-    { time: 5.5, label: "Jump 1", eventType: "jump", notes: "Good form" },
-    { time: 12.3, label: "Jump 2", eventType: "jump", notes: "Leaning left" }
-  ],
-  sampleRate: 104,
-  createdAt: "2025-12-15T10:30:00.000Z",
-  notes: "Morning training session"
+  sampleRate, duration, frameCount,
+  t,           // Float64Array of timestamps (seconds, zero-based)
+  raw,         // { acc:{x,y,z}, gyro:{x,y,z}, mag:{x,y,z} } as Float32Arrays
+  fusion: { quaternions, euler:{roll,pitch,yaw}, valid, hasMag },
+  linear,      // { x, y, z } world-frame linear accel (Float32Array, m/s²)
+  derived: {
+    accelMagnitude, accelMagnitudeSmooth,
+    gyroMagnitude, gyroMagnitudeSmooth,
+    linearMagnitude, linearMagnitudeSmooth,
+    jerk
+  },
+  motion: {
+    velocityX, velocityY, velocityZ,
+    displacementX, displacementY, displacementZ,
+    speed, totalDistance, zuptEvents, stillnessMask
+  },
+  summary: { peakAccel, peakSpeed, totalDistance, ... }
 }
 ```
 
-**Auto-save Triggers:**
-- After applying sync
-- After adding/deleting timestamp
-- After updating notes
+### Events Fired
 
-**Auto-load Trigger:**
-- When video file is loaded (`handleFileChange()`)
+| Event | Payload |
+|-------|---------|
+| `movesync:imu-data-ready` | `{ index }` — fired by `imu-panel.js` after CSV parse |
+| `movesync:imu-processed` | `{ index, processed }` — fired after full pipeline completes |
 
-### ZIP Export Format
+### Fast Cursor Lookup
 
-```
-project_name.zip
-├── project.json          # Metadata
-│   {
-│     "syncOffset": 4.2,
-│     "timestamps": [...],
-│     "sampleRate": 104,
-│     "createdAt": "...",
-│     "notes": "...",
-│     "videoFileName": "video_from_project.mp4",
-│     "csvFileName": "imu_data.csv"
-│   }
-├── video/
-│   └── video_from_project.mp4
-└── data/
-    └── imu_data.csv
-```
-
-### Import Process
-
-```javascript
-importProject() {
-  1. User selects ZIP file
-  2. JSZip.loadAsync(file)
-  3. Read project.json → parse metadata
-  4. Apply syncOffset and timestamps to state
-  5. Look for video file in /video/ folder
-     → Create File object from blob
-     → Set as video source (same as manual upload)
-  6. Look for CSV file in /data/ folder
-     → Parse as text
-     → Convert to csvData array (same as manual CSV upload)
-  7. Initialize charts and sliders
-  8. Save to localStorage
-}
-```
+`MoveSyncIMUProcessing.getValuesAtTime(processed, t)` uses binary search (`nearestIndex`) to return all derived values at a given IMU time in O(log n). This is called on every cursor update and video `timeupdate` event.
 
 ---
 
-## UI State Management
+## IMU Panel (`imu-panel.js`)
 
-### Tracking State
+Manages CSV parsing, chart rendering, cursor, and multi-sensor tab switching.
 
-```javascript
-isRunning = true | false
+### CSV Parsing
+
+```
+parseCsv(text)
+  → headers[], rows[][]
+
+findTimeIndex(headers)
+  → index of time column, or -1
+
+detectTimeScaleFactor(rows, timeIdx)
+  → scale factor to convert raw time values to seconds
+    (e.g. milliseconds → 0.001, microseconds → 0.000001)
+
+normalizeTimeColumnInPlace(rows, timeIdx)
+  → zero-base and scale time column in-place; return { t0, maxT, scale }
+
+buildImuReadoutCache(headers, rows, timeIdx)
+  → { t[], acc:{x,y,z}, gyro:{x,y,z}, mag:{x,y,z} }
+     (all plain JS arrays, sorted by time)
 ```
 
-**Controls:**
-- Whether `renderFrame()` continues looping
-- Button states (Start/Stop)
-- Video playback
+### Synthetic Timestamps
 
-### Sync State
+When no time column is found:
+1. A banner appears with a sample-rate input (default 100 Hz)
+2. A synthetic `t` column is prepended: `t[i] = i / hz`
+3. Re-render is triggered if the user changes the Hz and clicks **Apply**
 
-```javascript
-videoMarkedTime = null | number
-dataMarkedTime = null | number
-syncOffset = number
-```
+### Chart Rendering
 
-**State Machine:**
-```
-Initial: both null, offset = 0
-  ↓ Mark video time
-videoMarked = 5.2s, dataMarked = null
-  ↓ Mark data time
-videoMarked = 5.2s, dataMarked = 1.0s
-  ↓ Apply sync
-videoMarked = null, dataMarked = null, offset = 4.2s
-```
+Three `TimeSeriesChart` instances (from `time-series-chart.js`):
+- `charts.acc` → `ax, ay, az`
+- `charts.gyro` → `gx, gy, gz`
+- `charts.mag` → `mx, my, mz`
+
+Each chart includes the `movesyncCursor` plugin that draws:
+- **Yellow solid line** — cursor position
+- **Yellow dashed line** — IMU marker (time-sync reference point)
+- **Green dashed line** — T1 start
+- **Red dashed line** — T2 end
+
+### Cursor Slider Alignment
+
+The cursor `<input type="range">` must visually align with the chart plot area (which has dynamic padding for axis labels). After `Chart.js` computes `chartArea`, `alignImuCursorSliderToChartArea()` reads `chartArea.left` and `chartArea.right` and sets `margin-left` + `width` on the slider's wrapping column.
+
+### Events Fired
+
+| Event | Payload |
+|-------|---------|
+| `movesync:imu-cursor-changed` | `{ imuTime }` |
+| `movesync:imu-selected` | `{ index }` — when IMU tab is switched |
+| `movesync:imu-data-ready` | `{ index, hasData }` — triggers processing pipeline |
 
 ---
 
-## Performance Optimizations
+## Sensor Fusion 3D Panel (`sensor-fusion.js`)
 
-### Video Processing
-1. **Frame skipping**: Process every 2nd frame by default
-2. **Playback speed**: `video.playbackRate = 0.75` for smoother processing
-3. **Canvas sync**: Only update canvas size when video dimensions change
-4. **Conditional rendering**: Stop pose estimation when video ends
+`FusionPanel` (the singleton exposed as `window.MoveSyncViewerFusionPanel`) listens for `movesync:imu-processed`, calls `FusionProcessor.buildFromProcessed()` to convert the `ProcessedSession` to a display-ready orientation array, and then passes it to `FusionUI`.
 
-### Chart Updates
-1. **Throttling**: Update at most 30fps (`IMU_UPDATE_THROTTLE_MS = 33`)
-2. **Windowed rendering**: Only show 5s of data at a time
-3. **No animations**: `animation: false` in Chart.js config
-4. **No point markers**: `pointRadius: 0` (thousands of points)
+### 3D Rendering
 
-### Memory Management
-1. **URL cleanup**: Revoke object URLs when done (`URL.revokeObjectURL()`)
-2. **Chart reuse**: Destroy old charts before creating new ones
-3. **Event listener cleanup**: Remove old listeners when re-configuring sliders
+The disc is rendered on a plain Canvas 2D element — no WebGL dependency. Each frame:
+1. Rotate 8 reference points (front ring, back ring) using `rotateVectorByQuaternion`
+2. Sort side quads by average depth (painter's algorithm)
+3. Draw back face → sorted sides → front face
+4. Draw 3 axis arrows (X/Y/Z) with depth-dimmed opacity
 
-### Potential Improvements
-- Web Workers for CSV parsing (offload from main thread)
-- WebGL for Chart.js (better performance with large datasets)
-- Video thumbnails for quick navigation
-- Progressive CSV loading (stream large files)
+### Video Sync
+
+`FusionPanel` attaches to `timeupdate` and runs a `requestAnimationFrame` loop during playback. Cursor-driven updates are throttled to ~20 FPS via `renderThrottleMs`.
 
 ---
 
-## Privacy & Security
+## Video Panel (`video-panel.js`)
 
-### Data Flow
-```
-User's device → Browser → User's device
-(No external servers involved)
-```
+Builds the video player HTML dynamically (via `getMarkup()`) and injects it into `#viewerVideoPanelMount`.
 
-### Privacy Features
-- **No server uploads**: All processing happens locally
-- **No analytics**: No tracking, no telemetry
-- **No accounts**: No personal information collected
-- **localStorage only**: Data stored in user's browser
-- **User-controlled exports**: Projects exported only on user action
+### Pose Overlay Loading
 
-### Security Considerations
-- **File validation**: CSV parsing handles malformed data gracefully
-- **No code execution**: CSV data parsed as data, not evaluated as code
-- **Browser sandboxing**: Processing in isolated browser context
-- **No XSS vectors**: No dynamic HTML from user input (uses `textContent`)
+MoveNet dependencies are loaded lazily on first **Start tracking** click:
+1. `TensorFlow.js` (one CDN bundle)
+2. `@tensorflow-models/pose-detection`
+3. `movenet.js` (local script)
+
+A shared promise (`window.__MoveNetDetectorPromise`) ensures the detector is created exactly once, even if Start is clicked multiple times.
+
+### Metadata Popover
+
+An info button overlaid on the video opens a dark-glass popover showing session name, creation date, and notes. It supports both hover and click-to-pin behaviour.
 
 ---
 
-## File Structure Reference
+## Time Sync (`time-sync.js`)
 
-### config.js
-**Purpose**: Global configuration, DOM references, utility functions  
-**Lines**: ~180  
-**Key Exports**:
-```javascript
-// Configuration constants
-VIDEO_WIDTH, VIDEO_HEIGHT, MIN_PART_CONFIDENCE
-UPLOAD_FRAME_SKIP, FLIP_HORIZONTAL_UPLOAD
-SAMPLE_RATE_HZ
+### Offset Calculation
 
-// DOM element references
-video, canvas, ctx
-startBtn, stopBtn, clearBtn, statusEl
-uploadCsvBtn, csvInput, imuStatusEl
-dataTimelineSlider, videoTimelineSlider
-markVideoBtn, markDataBtn, setSyncBtn
-timestampLabelInput, timestampListEl
-exportProjectBtn, importProjectBtn
+```
+offset = videoMarkerT - imuMarkerT
 
-// Utility functions
-setStatus(text), setButtonsRunning(running)
-formatTime(seconds), syncVideoAndCanvasSize()
+When video is at time V:
+  corresponding IMU time = V - offset
 ```
 
-### imu.js
-**Purpose**: IMU data handling, Chart.js visualization, synchronization  
-**Lines**: ~660  
-**Key Functions**:
-```javascript
-// Chart management
-initImuCharts(), updateImuChartsFull()
-updateChartsForVideoTime(time)
+### Follow Video Mode
 
-// CSV handling
-setupCsvUpload()
+When enabled, `session-viewer.js` runs a `requestAnimationFrame` loop that calls `imuPanel.setCursorX(videoTime - offset)` each frame. This is coordinated by `movesync:time-sync-mode-changed`.
 
-// Synchronization
-setupSyncButtons(), checkSyncReady()
-setupDataTimelineSlider()
+### Bidirectional Slider Sync
 
-// Timestamps & Projects
-saveProjectToLocal(), loadProjectFromLocal()
-exportProject(), importProject(), generateReport()
-renderTimestamps(), selectTimestamp(), deleteTimestamp()
-```
+`session-viewer.js` listens to delegated `input` events on the document. When `#viewerVcSeek` changes (video slider), it updates the IMU cursor. When `#viewerImuCursorRange` changes (IMU slider), it sets `video.currentTime`. A `syncing` flag prevents ping-pong feedback loops.
 
-### movenet.js
-**Purpose**: MoveNet pose estimation, rendering, video controls  
-**Lines**: ~510  
-**Key Functions**:
-```javascript
-// Rendering
-renderFrame(), drawKeypoints(), drawSkeleton()
+### T1 / T2 Timeframe
 
-// Tracking control
-handleStart(), stopTracking()
-
-// Video management
-setupVideoTimelineSlider(), handleFileChange()
-```
-
-### main.js
-**Purpose**: App initialization and global reset  
-**Lines**: ~140  
-**Key Functions**:
-```javascript
-clearAll()  // Reset entire app state
-main()      // Initialize and start app
-```
+T1 and T2 store IMU-time values (seconds on the IMU x-axis). After both are set, **Apply Timeframe** fires `movesync:imu-timeframe-applied` which `imu-panel.js` uses to zoom the chart x-axis.
 
 ---
 
-## Development Workflow
+## Export / Import
 
-### Local Development
+### Project Export (Library)
+
+`buildProjectExportPayload(project)` iterates sessions and:
+- Encodes video files as base64 if under **30 MB**
+- Encodes IMU CSV files as text if under **5 MB**
+- Marks oversized files as `{ omitted: true }`
+
+Single-project export produces a `.json` file (format `movesync-project-export-v2`).
+Multi-project export uses **JSZip** to produce a `.zip` with one JSON per project plus a `manifest.json`.
+
+### Project Import
+
+Supports three formats:
+- `movesync-project-export-v2` — full export with embedded files (restored to `File` objects)
+- `movesync-project-export-v1` — metadata only, files missing
+- `movesync-project-draft-v1` — structure only (from the Upload page draft export)
+
+### Upload Draft Export
+
+The Upload page can export the current project *structure* (session names, notes, filenames) as a lightweight JSON draft. This is useful for templating recurring project shapes without embedding large binary files.
+
+---
+
+## Intro Overlay (`intro.js`)
+
+The splash screen renders a **flow-field particle animation** on a Canvas element:
+- `N` particles (scaled to viewport area, capped at 140) follow a curl-noise vector field
+- Pointer hover pulls nearby particles
+- On "Start tracking": a `burstRamp` accelerates all particles downward while the overlay fades out and the app shell rises with a 3D CSS transform (`translateY` + `rotateX`)
+
+After the first successful start, `localStorage.setItem("movesync-force-dashboard", "1")` ensures every subsequent page load goes directly to Dashboard, bypassing the intro.
+
+---
+
+## Event Reference
+
+| Event | Fired by | Consumed by |
+|-------|----------|-------------|
+| `movesync:app-init` | `app-shell.js` | sidebar, theme, search modules |
+| `movesync:page-loaded` | `app-shell.js` | search module (re-runs highlight) |
+| `movesync:projects-changed` | `session-store.js` | dashboard, library, session viewer |
+| `movesync:sessions-changed` | `session-store.js` | session viewer |
+| `movesync:active-session-changed` | `session-store.js` | picker, video panel, IMU, fusion, timestamps, time-sync |
+| `movesync:imu-data-ready` | `imu-panel.js` | `imu-processing.js` |
+| `movesync:imu-processed` | `imu-processing.js` | key-metrics, expanded-metrics, fusion panel, session viewer HUD |
+| `movesync:imu-cursor-changed` | `imu-panel.js` | fusion panel, session viewer live-speed HUD |
+| `movesync:imu-selected` | `imu-panel.js` | fusion panel |
+| `movesync:time-sync-changed` | `time-sync.js` | session viewer (offset cache), fusion panel |
+| `movesync:time-sync-mode-changed` | `time-sync.js` | session viewer (follow-video loop) |
+| `movesync:imu-timeframe-applied` | `time-sync.js` | `imu-panel.js` (zoom charts) |
+| `movesync:imu-timeframe-reset` | `time-sync.js` | `imu-panel.js` |
+| `movesync:imu-timeframe-marked` | `time-sync.js` | (future consumers) |
+| `movesync:viewer-tab-changed` | `session-viewer.js` | IMU panel (align slider), fusion panel (ensure mounted) |
+| `movesync:session-timestamps-changed` | `timestamps.js` | `timestamps.js` (re-render list) |
+| `movesync:fusion-ready` | `sensor-fusion.js` | arm-angle-analysis (populate selectors) |
+
+---
+
+## Performance Notes
+
+- **Chart.js `parsing: false` + `normalized: true`**: Data is pre-formatted as `{x, y}` pairs; Chart.js skips its own parsing step.
+- **`animation: false`** and **`pointRadius: 0`**: Avoids per-frame animation overhead for large datasets.
+- **Downsampling**: `expanded-metrics-panel.js` uses peak-preserving bucketing (max abs per bucket) to cap all graph signals at 600 points.
+- **IMU processing is synchronous on the main thread**: For very long recordings (>30 min at 100 Hz = 180k samples), this can cause a brief UI freeze. A Web Worker migration would eliminate this.
+- **Fusion throttle**: `FusionUI.renderThrottleMs = 50` (~20 FPS) prevents the 3D canvas from saturating the main thread during fast video playback.
+
+---
+
+## Development
+
+### Local Server
+
 ```bash
-# Start local server
 python -m http.server 8000
-
-# Open browser
-open http://localhost:8000
-
-# Make changes to JS files
-# Refresh browser to see changes
+# or
+npx serve .
 ```
+
+Open `http://localhost:8000`. No build step — edit any file and refresh.
+
+### Cache Busting (Dev)
+
+Set `DEV_CACHE_BUST = true` in `app-shell.js` and/or `session-viewer.js` to append `?v=<timestamp>` to all script and CSS loads, preventing stale cached files during development.
 
 ### Debugging Tips
+
 ```javascript
-// Enable verbose logging
-const DEBUG = true;
-if (DEBUG) console.log("Sync offset:", syncOffset);
+// Inspect active session
+window.MoveSyncSessionStore.getActiveSession()
 
-// Inspect TensorFlow backend
-console.log("TF Backend:", tf.getBackend());
+// Inspect processed IMU data
+window.currentProcessedSession?.summary
 
-// Check video state
-console.log({
-  duration: video.duration,
-  currentTime: video.currentTime,
-  readyState: video.readyState,
-  paused: video.paused
-});
+// Check Madgwick fusion validity
+window.currentProcessedSession?.fusion.valid
 
-// Inspect IMU data
-console.table(csvData.slice(0, 10)); // First 10 samples
+// Inspect all projects
+window.MoveSyncSessionStore.getProjects()
+
+// Current IMU cursor position
+// (read from the closure inside imu-panel — not directly accessible)
+// Use the movesync:imu-cursor-changed event listener instead:
+document.addEventListener('movesync:imu-cursor-changed', e => console.log(e.detail))
 ```
 
-### Browser DevTools
-- **Console**: Check for errors and warnings
-- **Network**: Verify model and library loading
-- **Performance**: Profile render loop for bottlenecks
-- **Memory**: Check for leaks during long sessions
+### Adding a New Page
+
+1. Create `app/navigation/my-page/my-page.{html,css,js}`
+2. Add a sidebar link in `index.html` with `data-page="My Page"` and `data-src="...html"`
+3. Register assets in `app.PAGE_ASSETS` in `app-shell.js`
+4. Export `window.MoveSyncPages["My Page"] = { init(), destroy() }`
+
+### Adding a New Metric
+
+1. Add an entry to `REGISTRY` in `key-metrics-panel.js`
+2. Add the computation in `extractMetrics()` in `key-metrics-panel.js`
+3. Add an entry to `GROUPS` in `expanded-metrics-panel.js` (with `source` dot-path for graph support)
 
 ---
 
 ## Deployment
 
-### GitHub Pages Setup
+### GitHub Pages
 
-1. **Repository Settings**:
-   - Go to Settings → Pages
-   - Source: Deploy from branch
-   - Branch: `main` (or `gh-pages`)
-   - Folder: `/ (root)`
+1. Push the repo to GitHub
+2. Go to **Settings → Pages → Source: Deploy from branch → `main` / root**
+3. Your app will be live at `https://<username>.github.io/<repo>/`
 
-2. **URL**: `https://[username].github.io/[repo-name]/`
+No build process. All external libraries are loaded from CDNs:
 
-3. **No build process needed**: Static files deploy as-is
+| Library | CDN |
+|---------|-----|
+| Chart.js 4.4.1 | `cdn.jsdelivr.net` |
+| JSZip 3.10.1 | `cdn.jsdelivr.net` |
+| TensorFlow.js 4.22.0 | `cdn.jsdelivr.net` |
+| @tensorflow-models/pose-detection 2.1.3 | `cdn.jsdelivr.net` |
+| Boxicons 2.1.4 | `unpkg.com` |
+| Poppins (font) | `fonts.googleapis.com` |
 
-### CDN Dependencies
-All external libraries are loaded from CDNs:
-- TensorFlow.js: `cdn.jsdelivr.net`
-- MoveNet: `cdn.jsdelivr.net`
-- Chart.js: `cdnjs.cloudflare.com`
-- JSZip: `cdnjs.cloudflare.com`
-
----
-
-## Additional Resources
-
-- [TensorFlow.js Performance Guide](https://www.tensorflow.org/js/guide/platform_and_environment)
-- [MoveNet Architecture](https://blog.tensorflow.org/2021/05/next-generation-pose-detection-with-movenet-and-tensorflowjs.html)
-- [Chart.js Performance Tips](https://www.chartjs.org/docs/latest/general/performance.html)
-- [Web Video Best Practices](https://web.dev/fast/#optimize-your-images)
+AHRS (Madgwick/Mahony) is bundled locally as `ahrs_min.js`.
 
 ---
 
-**Last Updated**: December 2025
+**Last Updated:** April 2026
