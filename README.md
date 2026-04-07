@@ -95,20 +95,6 @@ After CSV data is loaded, a full processing pipeline runs automatically:
 
 ---
 
-## Getting Started
-
-MoveSync runs entirely in the browser — just open the link above. No installation, downloads, or account needed.
-
-For developers who want to run it locally:
-
-```bash
-python -m http.server 8000
-```
-
-Then open `http://localhost:8000`. The app must be served over HTTP, not opened as a `file://` URL, because page partials are loaded via `fetch()`.
-
----
-
 ## Basic Workflow
 
 1. **Upload** — go to *Upload*, create a project, add one or more sessions (each with a video and/or IMU CSVs), then click **Save project**.
